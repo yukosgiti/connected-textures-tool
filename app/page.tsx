@@ -10,7 +10,7 @@ import {
   GRAPH_JSON_VERSION,
   parseGraphDocument,
 } from "@/lib/graph-json"
-import { GRAPH_PRESETS } from "@/lib/graph-presets"
+import { DEFAULT_GRAPH_PRESET_ID, GRAPH_PRESETS } from "@/lib/graph-presets"
 import useStore from "@/store/graph"
 import { createNode, NODE_TYPE_LABELS, type AppNodeType } from "@/store/nodes"
 import {
@@ -278,6 +278,26 @@ export default function Page() {
       setGraphStatus({ tone: "error", message })
     }
   }, [edges, nodes])
+
+  React.useEffect(() => {
+    const defaultPreset = GRAPH_PRESETS.find(
+      (preset) => preset.id === DEFAULT_GRAPH_PRESET_ID
+    )
+
+    if (!defaultPreset) {
+      return
+    }
+
+    try {
+      applyGraphDocument(defaultPreset.document, defaultPreset.label)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not load the default preset JSON."
+      setGraphStatus({ tone: "error", message })
+    }
+  }, [applyGraphDocument])
 
   const handleAddNode = React.useCallback(
     (type: AppNodeType) => {

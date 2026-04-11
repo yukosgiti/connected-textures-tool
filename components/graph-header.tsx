@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { DEFAULT_GRAPH_PRESET_ID } from "@/lib/graph-presets";
 
 export type GraphHeaderPreset = {
     id: string;
@@ -42,7 +43,7 @@ export function GraphHeader({
     status,
 }: Props) {
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-    const [selectedPreset, setSelectedPreset] = React.useState<string>("empty");
+    const [selectedPreset, setSelectedPreset] = React.useState<string>(DEFAULT_GRAPH_PRESET_ID);
 
     const handlePresetChange = React.useCallback((value: string | null) => {
         if (!value) {
