@@ -49,8 +49,15 @@ type Props = {
 }
 
 
+type ValueNodeData = {
+    data: number[];
+}
+
+
 export const ValueNode = memo(({ id }: Props) => {
     const nodeData = useNodeData(id);
+    const values = ((nodeData?.data as ValueNodeData | undefined)?.data) ?? [];
+
     function setRandom() {
         const newData = new Array(60).fill(1);
         newData.forEach((_, index) => {
@@ -71,8 +78,8 @@ export const ValueNode = memo(({ id }: Props) => {
     }
 
     function setInvert() {
-        const currentData = useStore.getState().getNode(id)?.data.data;
-        const newData = currentData.map(value => 1 - value);
+        const currentData = ((useStore.getState().getNode(id)?.data as ValueNodeData | undefined)?.data) ?? [];
+        const newData = currentData.map((value) => 1 - value);
         useStore.getState().setNode(id, { data: newData });
     }
 
@@ -109,7 +116,7 @@ export const ValueNode = memo(({ id }: Props) => {
 
                     </div>
                     <div className="flex  nodrag self-center relative isolate  w-full">
-                        {nodeData?.data.data.map((value, i) => (
+                        {values.map((value, i) => (
                             <span key={i}
                                 className="bg-secondary  w-full h-full"
                             >

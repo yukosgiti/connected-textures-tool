@@ -37,37 +37,14 @@ const useStore = create<AppState>((set, get) => ({
   setEdges: (edges) => {
     set({ edges });
   },
-  setNode: (id: string, newData: any) => {
+  setNode: (id, newData) => {
     set((state) => ({
       nodes: state.nodes.map((node) =>
         node.id === id ? { ...node, data: { ...node.data, ...newData } } : node
       ),
     }));
   },
-  getNode: (id: string) => {
-    const node = get().nodes.find((node) => node.id === id);
-    return node;
-  },
-  getNodeInputs: (id: string) => {
-    const inputData = get().edges
-      .filter((edge) => edge.target === id)
-      .map((edge) => {
-        const sourceNode = get().nodes.find((node) => node.id === edge.source);
-        return sourceNode ? sourceNode.data : null;
-      })
-      .filter((data) => data !== null);
-    return inputData;
-  },
-  getNodeOutputs: (id: string) => {
-    const outputData = get().edges
-      .filter((edge) => edge.source === id)
-      .map((edge) => {
-        const targetNode = get().nodes.find((node) => node.id === edge.target);
-        return targetNode ? targetNode.data : null;
-      })
-      .filter((data) => data !== null);
-    return outputData;
-  },
+  getNode: (id) => get().nodes.find((node) => node.id === id),
 }));
 
 

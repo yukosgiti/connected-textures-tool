@@ -8,6 +8,7 @@ import {
 } from '@xyflow/react';
  
 export type AppNode = Node;
+export type NodeDataPatch = Record<string, unknown>;
  
 export type AppState = {
   nodes: AppNode[];
@@ -18,8 +19,6 @@ export type AppState = {
   onConnect: OnConnect;
   setNodes: (nodes: AppNode[]) => void;
   setEdges: (edges: Edge[]) => void;
-  setNode: (id: string, newData: any) => void;
+  setNode: (id: string, newData: NodeDataPatch) => void;
   getNode: (id: string) => AppNode | undefined;
-  getNodeInputs: (id: string) =>  Record<string, unknown>[];
-  getNodeOutputs: (id: string) => Record<string, unknown>[];
 };
