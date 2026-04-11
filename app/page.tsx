@@ -42,13 +42,16 @@ const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
       "rotateTexture",
       "translateTexture",
       "scaleTexture",
-      "phaseTexture",
       "hslTexture",
       "invertTexture",
       "opacityTexture",
       "mergeTexture",
       "maskTexture",
     ],
+  },
+  {
+    label: "Timeline Operations",
+    types: ["phaseTexture", "selectTexture"],
   },
 ];
 
@@ -66,6 +69,7 @@ const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
   translateTexture: Image01FreeIcons,
   scaleTexture: Image01FreeIcons,
   phaseTexture: Image01FreeIcons,
+  selectTexture: Image01FreeIcons,
   hslTexture: Image01FreeIcons,
   invertTexture: Image01FreeIcons,
   opacityTexture: Image01FreeIcons,

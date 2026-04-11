@@ -18,6 +18,7 @@ import { OpacityTextureNode } from '@/components/nodes/OpacityTextureNode';
 import { PhaseTextureNode } from '@/components/nodes/PhaseTextureNode';
 import { RandomTextureNode } from '@/components/nodes/RandomTextureNode';
 import { ScaleTextureNode } from '@/components/nodes/ScaleTextureNode';
+import { SelectTextureNode } from '@/components/nodes/SelectTextureNode';
 import { TranslateTextureNode } from '@/components/nodes/TranslateTextureNode';
 import { ValueNode } from '@/components/nodes/ValueNode';
 import { TextureNode } from '@/components/nodes/TextureNode';
@@ -76,6 +77,7 @@ function getHandleDataType(nodeType: string | undefined, handleId: string | null
         || handleId.includes('inputLightness')
         || handleId.includes('inputOpacity')
         || handleId.includes('inputFrames')
+        || handleId.includes('inputIndex')
         ? 'value'
         : 'texture';
   }
@@ -114,6 +116,7 @@ const useStore = create<AppState>((set, get) => ({
     translateTexture: TranslateTextureNode,
     scaleTexture: ScaleTextureNode,
     phaseTexture: PhaseTextureNode,
+    selectTexture: SelectTextureNode,
     hslTexture: HslTextureNode,
     invertTexture: InvertTextureNode,
     opacityTexture: OpacityTextureNode,

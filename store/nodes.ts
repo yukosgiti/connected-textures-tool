@@ -14,6 +14,7 @@ export const NODE_TYPE_LABELS = {
   translateTexture: "Translate Texture",
   scaleTexture: "Scale Texture",
   phaseTexture: "Phase Texture",
+  selectTexture: "Select Texture",
   hslTexture: "HSL Texture",
   invertTexture: "Invert Texture",
   opacityTexture: "Opacity Texture",
@@ -70,6 +71,8 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 };
     case "phaseTexture":
       return { texture: null, error: null, fallbackFrames: 0 };
+    case "selectTexture":
+      return { texture: null, error: null, fallbackIndex: 0 };
     case "hslTexture":
       return { texture: null, error: null, fallbackHue: 0, fallbackSaturation: 0, fallbackLightness: 0 };
     case "invertTexture":
