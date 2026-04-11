@@ -8,6 +8,7 @@ import { PreviewNode } from '@/components/nodes/PreviewNode';
 import { ConnectedTextureNode } from '@/components/nodes/ConnectedTextureNode';
 import { ConnectedTexturePackNode } from '@/components/nodes/ConnectedTexturePackNode';
 import { ConnectedTextureSplitNode } from '@/components/nodes/ConnectedTextureSplitNode';
+import { ColorTextureNode } from '@/components/nodes/ColorTextureNode';
 import { ExportNode } from '@/components/nodes/ExportNode';
 import { HslTextureNode } from '@/components/nodes/HslTextureNode';
 import { InvertTextureNode } from '@/components/nodes/InvertTextureNode';
@@ -15,6 +16,7 @@ import { MaskTextureNode } from '@/components/nodes/MaskTextureNode';
 import { MergeTextureNode } from '@/components/nodes/MergeTextureNode';
 import { OpacityTextureNode } from '@/components/nodes/OpacityTextureNode';
 import { PhaseTextureNode } from '@/components/nodes/PhaseTextureNode';
+import { RandomTextureNode } from '@/components/nodes/RandomTextureNode';
 import { ScaleTextureNode } from '@/components/nodes/ScaleTextureNode';
 import { TranslateTextureNode } from '@/components/nodes/TranslateTextureNode';
 import { ValueNode } from '@/components/nodes/ValueNode';
@@ -29,6 +31,8 @@ function getHandleDataType(nodeType: string | undefined, handleId: string | null
     case 'value':
       return direction === 'source' ? 'value' : null;
     case 'texture':
+    case 'colorTexture':
+    case 'randomTexture':
       return direction === 'source' ? 'texture' : null;
     case 'connectedTexture':
       return direction === 'source' ? 'connectedTexture' : 'texture';
@@ -101,6 +105,8 @@ const useStore = create<AppState>((set, get) => ({
   nodeTypes: {
     value: ValueNode,
     texture: TextureNode,
+    colorTexture: ColorTextureNode,
+    randomTexture: RandomTextureNode,
     connectedTexture: ConnectedTextureNode,
     connectedTextureSplit: ConnectedTextureSplitNode,
     connectedTexturePack: ConnectedTexturePackNode,

@@ -3,6 +3,8 @@ import { CONNECTED_TEXTURE_OUTPUTS, getConnectedTextureTextureInputHandleId } fr
 import useStore from "@/store/graph";
 import { createNode, NODE_TYPE_LABELS, type AppNodeType } from "@/store/nodes";
 import {
+  ColorPickerIcon,
+  DiceIcon,
   DownloadCircle01Icon,
   FunctionSquareIcon,
   Image01FreeIcons,
@@ -28,7 +30,7 @@ import {
 const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
   {
     label: "Inputs",
-    types: ["value", "texture"],
+    types: ["value", "texture", "colorTexture", "randomTexture"],
   },
   {
     label: "Connected Textures",
@@ -55,6 +57,8 @@ const TOP_LEVEL_NODE_TYPES: AppNodeType[] = ["preview", "export"];
 const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
   value: FunctionSquareIcon,
   texture: Image01FreeIcons,
+  colorTexture: ColorPickerIcon,
+  randomTexture: DiceIcon,
   connectedTexture: Image01FreeIcons,
   connectedTextureSplit: Image01FreeIcons,
   connectedTexturePack: Image01FreeIcons,

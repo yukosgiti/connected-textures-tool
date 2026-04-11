@@ -5,6 +5,8 @@ import { AppNode } from "./types";
 export const NODE_TYPE_LABELS = {
   value: "Value",
   texture: "Texture",
+  colorTexture: "Color Texture",
+  randomTexture: "Random Texture",
   connectedTexture: "Connected Texture",
   connectedTextureSplit: "Connected Texture Split",
   connectedTexturePack: "Textures To Connected Texture",
@@ -50,6 +52,10 @@ export function getInitialNodeData(type: AppNodeType) {
       return createValueNodeData();
     case "texture":
       return { texture: null, error: null };
+    case "colorTexture":
+      return { texture: null, error: null, color: "#3b82f6" };
+    case "randomTexture":
+      return { texture: null, error: null, mode: "grayscale" };
     case "connectedTexture":
       return { texture: null, outputTextures: {}, error: null, debug: false };
     case "connectedTextureSplit":
