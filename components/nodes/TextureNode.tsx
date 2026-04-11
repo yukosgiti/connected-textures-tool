@@ -12,6 +12,7 @@ import {
     FileUploadDropzone,
 } from "@/components/ui/file-upload";
 import { useNodeData } from "@/hooks/store";
+import { withBasePath } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
 import useStore from "@/store/graph";
 import { type NodeDataPatch } from "@/store/types";
@@ -65,6 +66,12 @@ export const TextureNode = memo(({ id }: Props) => {
     const [nodeData, setNodeData] = useTextureNode(id);
     const [files, setFiles] = React.useState<File[]>([]);
     const [isUploading, setIsUploading] = React.useState(false);
+    const presetTextures = React.useMemo(() => {
+        return PRESET_TEXTURE_ASSETS.map((preset) => ({
+            ...preset,
+            src: withBasePath(preset.src),
+        }));
+    }, []);
 
     const texture = nodeData.texture ?? null;
     const error = nodeData.error ?? null;
@@ -111,7 +118,7 @@ export const TextureNode = memo(({ id }: Props) => {
         }
     }, [setNodeData]);
 
-    const onPresetSelect = React.useCallback(async (preset: (typeof PRESET_TEXTURE_ASSETS)[number]) => {
+    const onPresetSelect = React.useCallback(async (preset: (typeof presetTextures)[number]) => {
         setIsUploading(true);
 
         try {
@@ -179,7 +186,7 @@ export const TextureNode = memo(({ id }: Props) => {
                     {/* {isUploading && <p className="text-muted-foreground text-xs">Processing texture…</p>} */}
 
                     <div className="nodrag flex flex-wrap gap-0.5">
-                        {PRESET_TEXTURE_ASSETS.map((preset) => (
+                        {presetTextures.map((preset) => (
                             <Button
                                 key={preset.src}
                                 variant="outline"

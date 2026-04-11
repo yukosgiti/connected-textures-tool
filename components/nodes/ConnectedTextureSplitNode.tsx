@@ -10,6 +10,7 @@ import {
 } from "@/components/base-node";
 import { EmptyTexture, TexturePreview } from "@/components/EmptyTexture";
 import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
+import { withBasePath } from "@/lib/base-path";
 import {
     CONNECTED_TEXTURE_INPUT_HANDLE_ID,
     CONNECTED_TEXTURE_OUTPUTS
@@ -118,7 +119,7 @@ export const ConnectedTextureSplitNode = memo(({ id }: Props) => {
                                 />
                                 <span className="w-5 text-right tabular-nums">{output.index}</span>
                                 <Image
-                                    src={`/sample/${output.index}.png`}
+                                    src={withBasePath(`/sample/${output.index}.png`)}
                                     alt={`Sample ${output.index}`}
                                     width={32}
                                     height={32}

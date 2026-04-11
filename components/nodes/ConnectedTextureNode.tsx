@@ -12,6 +12,7 @@ import { EmptyTexture, TexturePreview } from "@/components/EmptyTexture";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
+import { withBasePath } from "@/lib/base-path";
 import {
     CONNECTED_TEXTURE_OUTPUT_HANDLE_ID,
     CONNECTED_TEXTURE_OUTPUTS,
@@ -151,7 +152,7 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                                 <div key={output.handleId} className="flex items-center gap-1 text-[10px] text-secondary-foreground">
                                     <span className="w-5 text-right tabular-nums">{output.index}</span>
                                     <Image
-                                        src={`/sample/${output.index}.png`}
+                                        src={withBasePath(`/sample/${output.index}.png`)}
                                         alt={`Sample ${output.index}`}
                                         width={32}
                                         height={32}
