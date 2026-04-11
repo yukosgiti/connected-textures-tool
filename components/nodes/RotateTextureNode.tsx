@@ -9,6 +9,7 @@ import {
 
 import { useNodeData, useNodeInputs } from "@/hooks/store";
 import { rotateTexture, type SerializedTextureData } from "@/lib/texture";
+import { ZERO_VALUE_FRAMES } from "@/lib/utils";
 import useStore from "@/store/graph";
 import { Rotate360FreeIcons } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -32,9 +33,6 @@ type ValueNodeData = {
 }
 
 
-const EMPTY_VALUES: number[] = [];
-
-
 type RotateTextureNodeData = {
     texture?: SerializedTextureData | null;
     error?: string | null;
@@ -52,14 +50,15 @@ export const RotateTextureNode = memo(({ id }: Props) => {
         return Array.isArray((input as ValueNodeData).data);
     }) as ValueNodeData | undefined;
     const inputTexture = textureInput?.texture ?? null;
-    const rotationValues = valueInput?.data ?? EMPTY_VALUES;
+    const hasValueInput = Array.isArray(valueInput?.data);
+    const rotationValues = valueInput?.data ?? ZERO_VALUE_FRAMES;
     const valueFrames = rotationValues.length;
     const nodeData = (node?.data as RotateTextureNodeData | undefined) ?? {};
     const texture = nodeData.texture ?? null;
     const error = nodeData.error ?? null;
 
     React.useEffect(() => {
-        if (!inputTexture || valueFrames === 0) {
+        if (!inputTexture) {
             setNode(id, { texture: null, error: null });
 
             return;
@@ -92,13 +91,14 @@ export const RotateTextureNode = memo(({ id }: Props) => {
                         {texture ? `${texture.name} · ${texture.frames} frames` : "Connect both inputs"}
                     </p>
                     <p className="text-muted-foreground text-xs">
-                        {valueFrames > 0 ? `Rotation input: ${valueFrames} samples` : "Connect a value input"}
+                        {hasValueInput ? `Rotation input: ${valueFrames} samples` : `Rotation input: default ${valueFrames} zeroes`}
                     </p>
                     {error && <p className="text-destructive text-xs">{error}</p>}
                 </div>
                 <Handle type="target" position={Position.Left} id="inputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
                 <Handle type="target" position={Position.Left} id="inputValue" className="top-16! size-3! bg-orange-500! border-orange-300!" data-type="value" />
-                <Handle type="source" position={Position.Right} id="output" data-type="texture" />
+                <Handle type="source" position={Position.Right} id="outputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
+
             </BaseNodeContent>
         </BaseNode>
     );

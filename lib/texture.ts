@@ -166,7 +166,7 @@ export function getTextureFramePixels(
 
 export function rotateTexture(
   texture: SerializedTextureData,
-  values: number[],
+  values: readonly number[],
 ): SerializedTextureData {
   const decodedPixels = decodeTexturePixels(texture);
   const width = texture.width;

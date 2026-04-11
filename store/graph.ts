@@ -4,6 +4,7 @@ import { addEdge, applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
 import { initialNodes } from './nodes';
 import { initialEdges } from './edges';
 import { AppState } from './types';
+import { PreviewNode } from '@/components/nodes/PreviewNode';
 import { ValueNode } from '@/components/nodes/ValueNode';
 import { TextureNode } from '@/components/nodes/TextureNode';
 import { RotateTextureNode } from '@/components/nodes/RotateTextureNode';
@@ -15,6 +16,7 @@ const useStore = create<AppState>((set, get) => ({
     value: ValueNode,
     texture: TextureNode,
     rotateTexture: RotateTextureNode,
+    preview: PreviewNode,
   },
   onNodesChange: (changes) => {
     set({

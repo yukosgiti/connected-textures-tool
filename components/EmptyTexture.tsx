@@ -1,7 +1,7 @@
 "use client";
 
 import { decodeTexturePixels, type SerializedTextureData } from "@/lib/texture";
-import { FRAMES } from "@/lib/utils";
+import { cn, FRAMES } from "@/lib/utils";
 import React from "react";
 
 const previewContainerClass = "size-32 overflow-hidden p-0 rounded-none border-none";
@@ -103,9 +103,9 @@ function createProgram(gl: WebGLRenderingContext, vertexSource: string, fragment
     return null;
 }
 
-export const EmptyTexture = () => {
+export const EmptyTexture = ({ className }: { className?: string }) => {
     return (
-        <div className="size-32 p-0 rounded-none border-none" style={{
+        <div className={cn("size-32 p-0 rounded-none border-none", className)} style={{
             backgroundImage: `linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333), linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333)`,
             backgroundSize: "16px 16px, 16px 16px",
             backgroundPosition: "0 0, 8px 8px",
