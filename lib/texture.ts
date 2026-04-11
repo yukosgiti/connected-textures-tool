@@ -33,6 +33,10 @@ function decodeBase64(base64: string) {
   return bytes;
 }
 
+export function decodeTexturePixels(texture: SerializedTextureData) {
+  return decodeBase64(texture.pixels);
+}
+
 function createCanvas(width: number, height: number) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -96,10 +100,11 @@ export async function normalizeTextureFile(
 
   const sourcePixels = sourceContext.getImageData(0, 0, SIZE, image.height).data;
   const frameByteLength = SIZE * SIZE * 4;
+  const framesPerSourceFrame = FRAMES / sourceFrames;
   const normalizedPixels = new Uint8ClampedArray(frameByteLength * FRAMES);
 
   for (let frameIndex = 0; frameIndex < FRAMES; frameIndex += 1) {
-    const sourceFrameIndex = frameIndex % sourceFrames;
+    const sourceFrameIndex = Math.floor(frameIndex / framesPerSourceFrame);
     const sourceStart = sourceFrameIndex * frameByteLength;
     const sourceEnd = sourceStart + frameByteLength;
     const targetStart = frameIndex * frameByteLength;
@@ -150,7 +155,7 @@ export function getTextureFramePixels(
     ((frameIndex % texture.frames) + texture.frames) % texture.frames;
   const frameByteLength = texture.width * texture.frameSize * 4;
   const frameStart = safeFrameIndex * frameByteLength;
-  const decodedPixels = decodeBase64(texture.pixels);
+  const decodedPixels = decodeTexturePixels(texture);
 
   return decodedPixels.slice(frameStart, frameStart + frameByteLength);
 }
