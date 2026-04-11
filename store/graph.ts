@@ -6,6 +6,11 @@ import { initialEdges } from './edges';
 import { AppState } from './types';
 import { PreviewNode } from '@/components/nodes/PreviewNode';
 import { HslTextureNode } from '@/components/nodes/HslTextureNode';
+import { InvertTextureNode } from '@/components/nodes/InvertTextureNode';
+import { MaskTextureNode } from '@/components/nodes/MaskTextureNode';
+import { MergeTextureNode } from '@/components/nodes/MergeTextureNode';
+import { OpacityTextureNode } from '@/components/nodes/OpacityTextureNode';
+import { PhaseTextureNode } from '@/components/nodes/PhaseTextureNode';
 import { ScaleTextureNode } from '@/components/nodes/ScaleTextureNode';
 import { TranslateTextureNode } from '@/components/nodes/TranslateTextureNode';
 import { ValueNode } from '@/components/nodes/ValueNode';
@@ -21,7 +26,12 @@ const useStore = create<AppState>((set, get) => ({
     rotateTexture: RotateTextureNode,
     translateTexture: TranslateTextureNode,
     scaleTexture: ScaleTextureNode,
+    phaseTexture: PhaseTextureNode,
     hslTexture: HslTextureNode,
+    invertTexture: InvertTextureNode,
+    opacityTexture: OpacityTextureNode,
+    mergeTexture: MergeTextureNode,
+    maskTexture: MaskTextureNode,
     preview: PreviewNode,
   },
   onNodesChange: (changes) => {

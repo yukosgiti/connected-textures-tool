@@ -8,7 +8,12 @@ export const NODE_TYPE_LABELS = {
   rotateTexture: "Rotate Texture",
   translateTexture: "Translate Texture",
   scaleTexture: "Scale Texture",
+  phaseTexture: "Phase Texture",
   hslTexture: "HSL Texture",
+  invertTexture: "Invert Texture",
+  opacityTexture: "Opacity Texture",
+  mergeTexture: "Merge Texture",
+  maskTexture: "Mask Texture",
   preview: "Preview",
 } as const;
 
@@ -47,7 +52,17 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, error: null };
     case "scaleTexture":
       return { texture: null, error: null };
+    case "phaseTexture":
+      return { texture: null, error: null };
     case "hslTexture":
+      return { texture: null, error: null };
+    case "invertTexture":
+      return { texture: null, error: null };
+    case "opacityTexture":
+      return { texture: null, error: null };
+    case "mergeTexture":
+      return { texture: null, error: null, mode: "normal" };
+    case "maskTexture":
       return { texture: null, error: null };
     case "preview":
       return {

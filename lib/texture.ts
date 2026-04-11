@@ -10,6 +10,20 @@ export type SerializedTextureData = {
   pixels: string;
 };
 
+export const TEXTURE_BLEND_MODE_LABELS = {
+  normal: "Normal",
+  darken: "Darken",
+  lighten: "Lighten",
+  multiply: "Multiply",
+  divide: "Divide",
+  add: "Add",
+  subtract: "Subtract",
+  screen: "Screen",
+  overlay: "Overlay",
+} as const;
+
+export type TextureBlendMode = keyof typeof TEXTURE_BLEND_MODE_LABELS;
+
 function encodeBase64(bytes: Uint8ClampedArray) {
   let binary = "";
   const chunkSize = 0x8000;
@@ -437,5 +451,215 @@ export function adjustHslTexture(
     frames: texture.frames,
     sourceFrames: texture.frames,
     pixels: encodeTexturePixels(adjustedPixels),
+  };
+}
+
+export function adjustOpacityTexture(
+  texture: SerializedTextureData,
+  opacityValues: readonly number[],
+): SerializedTextureData {
+  const decodedPixels = decodeTexturePixels(texture);
+  const adjustedPixels = new Uint8ClampedArray(decodedPixels);
+  const frameByteLength = texture.width * texture.frameSize * 4;
+
+  for (let frameIndex = 0; frameIndex < texture.frames; frameIndex += 1) {
+    const frameStart = frameIndex * frameByteLength;
+    const opacity = Math.max(0, Math.min(1, opacityValues[frameIndex] ?? 1));
+
+    for (let offset = 0; offset < frameByteLength; offset += 4) {
+      const alphaIndex = frameStart + offset + 3;
+      adjustedPixels[alphaIndex] = Math.round(decodedPixels[alphaIndex] * opacity);
+    }
+  }
+
+  return {
+    name: `${texture.name} (opacity)`,
+    width: texture.width,
+    height: texture.height,
+    frameSize: texture.frameSize,
+    frames: texture.frames,
+    sourceFrames: texture.frames,
+    pixels: encodeTexturePixels(adjustedPixels),
+  };
+}
+
+function clampUnit(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function blendChannel(base: number, blend: number, mode: TextureBlendMode) {
+  switch (mode) {
+    case "normal":
+      return blend;
+    case "darken":
+      return Math.min(base, blend);
+    case "lighten":
+      return Math.max(base, blend);
+    case "multiply":
+      return base * blend;
+    case "divide":
+      return clampUnit(blend <= 0 ? 1 : base / blend);
+    case "add":
+      return clampUnit(base + blend);
+    case "subtract":
+      return clampUnit(base - blend);
+    case "screen":
+      return 1 - (1 - base) * (1 - blend);
+    case "overlay":
+      return base < 0.5
+        ? 2 * base * blend
+        : 1 - 2 * (1 - base) * (1 - blend);
+  }
+}
+
+export function blendTextures(
+  baseTexture: SerializedTextureData,
+  blendTexture: SerializedTextureData,
+  mode: TextureBlendMode,
+): SerializedTextureData {
+  if (
+    baseTexture.width !== blendTexture.width ||
+    baseTexture.frameSize !== blendTexture.frameSize ||
+    baseTexture.frames !== blendTexture.frames
+  ) {
+    throw new Error("Textures must have matching dimensions and frame counts.");
+  }
+
+  const basePixels = decodeTexturePixels(baseTexture);
+  const blendPixels = decodeTexturePixels(blendTexture);
+  const mergedPixels = new Uint8ClampedArray(basePixels.length);
+
+  for (let index = 0; index < basePixels.length; index += 4) {
+    const baseRed = basePixels[index] / 255;
+    const baseGreen = basePixels[index + 1] / 255;
+    const baseBlue = basePixels[index + 2] / 255;
+    const baseAlpha = basePixels[index + 3] / 255;
+    const blendRed = blendPixels[index] / 255;
+    const blendGreen = blendPixels[index + 1] / 255;
+    const blendBlue = blendPixels[index + 2] / 255;
+    const blendAlpha = blendPixels[index + 3] / 255;
+    const outAlpha = blendAlpha + baseAlpha * (1 - blendAlpha);
+
+    const mergedRed = blendChannel(baseRed, blendRed, mode);
+    const mergedGreen = blendChannel(baseGreen, blendGreen, mode);
+    const mergedBlue = blendChannel(baseBlue, blendBlue, mode);
+
+    const outRed = outAlpha === 0
+      ? 0
+      : (((1 - blendAlpha) * baseRed * baseAlpha) + (blendAlpha * mergedRed)) / outAlpha;
+    const outGreen = outAlpha === 0
+      ? 0
+      : (((1 - blendAlpha) * baseGreen * baseAlpha) + (blendAlpha * mergedGreen)) / outAlpha;
+    const outBlue = outAlpha === 0
+      ? 0
+      : (((1 - blendAlpha) * baseBlue * baseAlpha) + (blendAlpha * mergedBlue)) / outAlpha;
+
+    mergedPixels[index] = Math.round(clampUnit(outRed) * 255);
+    mergedPixels[index + 1] = Math.round(clampUnit(outGreen) * 255);
+    mergedPixels[index + 2] = Math.round(clampUnit(outBlue) * 255);
+    mergedPixels[index + 3] = Math.round(clampUnit(outAlpha) * 255);
+  }
+
+  return {
+    name: `${baseTexture.name} (${mode} ${blendTexture.name})`,
+    width: baseTexture.width,
+    height: baseTexture.height,
+    frameSize: baseTexture.frameSize,
+    frames: baseTexture.frames,
+    sourceFrames: baseTexture.frames,
+    pixels: encodeTexturePixels(mergedPixels),
+  };
+}
+
+export function maskTexture(
+  texture: SerializedTextureData,
+  mask: SerializedTextureData,
+): SerializedTextureData {
+  if (
+    texture.width !== mask.width ||
+    texture.frameSize !== mask.frameSize ||
+    texture.frames !== mask.frames
+  ) {
+    throw new Error("Textures must have matching dimensions and frame counts.");
+  }
+
+  const texturePixels = decodeTexturePixels(texture);
+  const maskPixels = decodeTexturePixels(mask);
+  const maskedPixels = new Uint8ClampedArray(texturePixels);
+
+  for (let index = 0; index < texturePixels.length; index += 4) {
+    const maskRed = maskPixels[index] / 255;
+    const maskGreen = maskPixels[index + 1] / 255;
+    const maskBlue = maskPixels[index + 2] / 255;
+    const maskAlpha = maskPixels[index + 3] / 255;
+    const maskLuminance = (0.2126 * maskRed) + (0.7152 * maskGreen) + (0.0722 * maskBlue);
+    const opacity = clampUnit(maskLuminance * maskAlpha);
+
+    maskedPixels[index + 3] = Math.round(texturePixels[index + 3] * opacity);
+  }
+
+  return {
+    name: `${texture.name} (masked by ${mask.name})`,
+    width: texture.width,
+    height: texture.height,
+    frameSize: texture.frameSize,
+    frames: texture.frames,
+    sourceFrames: texture.frames,
+    pixels: encodeTexturePixels(maskedPixels),
+  };
+}
+
+export function invertTexture(
+  texture: SerializedTextureData,
+): SerializedTextureData {
+  const sourcePixels = decodeTexturePixels(texture);
+  const invertedPixels = new Uint8ClampedArray(sourcePixels.length);
+
+  for (let index = 0; index < sourcePixels.length; index += 4) {
+    invertedPixels[index] = 255 - sourcePixels[index];
+    invertedPixels[index + 1] = 255 - sourcePixels[index + 1];
+    invertedPixels[index + 2] = 255 - sourcePixels[index + 2];
+    invertedPixels[index + 3] = sourcePixels[index + 3];
+  }
+
+  return {
+    name: `${texture.name} (inverted)`,
+    width: texture.width,
+    height: texture.height,
+    frameSize: texture.frameSize,
+    frames: texture.frames,
+    sourceFrames: texture.frames,
+    pixels: encodeTexturePixels(invertedPixels),
+  };
+}
+
+export function phaseTexture(
+  texture: SerializedTextureData,
+  frameOffsets: readonly number[],
+): SerializedTextureData {
+  const sourcePixels = decodeTexturePixels(texture);
+  const frameByteLength = texture.width * texture.frameSize * 4;
+  const phasedPixels = new Uint8ClampedArray(sourcePixels.length);
+
+  for (let frameIndex = 0; frameIndex < texture.frames; frameIndex += 1) {
+    const frameOffset = Math.round(frameOffsets[frameIndex] ?? 0);
+    const sourceFrameIndex = ((frameIndex + frameOffset) % texture.frames + texture.frames) % texture.frames;
+    const sourceStart = sourceFrameIndex * frameByteLength;
+    const targetStart = frameIndex * frameByteLength;
+
+    phasedPixels.set(
+      sourcePixels.subarray(sourceStart, sourceStart + frameByteLength),
+      targetStart,
+    );
+  }
+
+  return {
+    name: `${texture.name} (phased)`,
+    width: texture.width,
+    height: texture.height,
+    frameSize: texture.frameSize,
+    frames: texture.frames,
+    sourceFrames: texture.frames,
+    pixels: encodeTexturePixels(phasedPixels),
   };
 }
