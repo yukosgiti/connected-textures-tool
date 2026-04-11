@@ -17,12 +17,15 @@ import { MergeTextureNode } from '@/components/nodes/MergeTextureNode';
 import { OpacityTextureNode } from '@/components/nodes/OpacityTextureNode';
 import { PhaseTextureNode } from '@/components/nodes/PhaseTextureNode';
 import { RandomTextureNode } from '@/components/nodes/RandomTextureNode';
+import { ReverseTextureNode } from '@/components/nodes/ReverseTextureNode';
 import { ScaleTextureNode } from '@/components/nodes/ScaleTextureNode';
 import { SelectTextureNode } from '@/components/nodes/SelectTextureNode';
+import { SpeedTextureNode } from '@/components/nodes/SpeedTextureNode';
 import { TranslateTextureNode } from '@/components/nodes/TranslateTextureNode';
 import { ValueNode } from '@/components/nodes/ValueNode';
 import { TextureNode } from '@/components/nodes/TextureNode';
 import { RotateTextureNode } from '@/components/nodes/RotateTextureNode';
+import { HoldTextureNode } from '@/components/nodes/HoldTextureNode';
 import { type Connection } from '@xyflow/react';
 
 type HandleDataType = 'value' | 'texture' | 'connectedTexture' | null;
@@ -78,6 +81,8 @@ function getHandleDataType(nodeType: string | undefined, handleId: string | null
         || handleId.includes('inputOpacity')
         || handleId.includes('inputFrames')
         || handleId.includes('inputIndex')
+        || handleId.includes('inputSpeed')
+        || handleId.includes('inputHold')
         ? 'value'
         : 'texture';
   }
@@ -115,6 +120,9 @@ const useStore = create<AppState>((set, get) => ({
     rotateTexture: RotateTextureNode,
     translateTexture: TranslateTextureNode,
     scaleTexture: ScaleTextureNode,
+    reverseTexture: ReverseTextureNode,
+    speedTexture: SpeedTextureNode,
+    holdTexture: HoldTextureNode,
     phaseTexture: PhaseTextureNode,
     selectTexture: SelectTextureNode,
     hslTexture: HslTextureNode,

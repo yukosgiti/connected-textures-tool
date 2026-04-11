@@ -661,6 +661,112 @@ export function invertTexture(
   };
 }
 
+function normalizeFrameIndex(frameIndex: number, frameCount: number) {
+  return ((frameIndex % frameCount) + frameCount) % frameCount;
+}
+
+export function reverseTexture(
+  texture: SerializedTextureData,
+): SerializedTextureData {
+  const sourcePixels = decodeTexturePixels(texture);
+  const frameByteLength = texture.width * texture.frameSize * 4;
+  const reversedPixels = new Uint8ClampedArray(sourcePixels.length);
+
+  for (let frameIndex = 0; frameIndex < texture.frames; frameIndex += 1) {
+    const sourceFrameIndex = texture.frames - 1 - frameIndex;
+    const sourceStart = sourceFrameIndex * frameByteLength;
+    const targetStart = frameIndex * frameByteLength;
+
+    reversedPixels.set(
+      sourcePixels.subarray(sourceStart, sourceStart + frameByteLength),
+      targetStart,
+    );
+  }
+
+  return {
+    name: `${texture.name} (reversed)`,
+    width: texture.width,
+    height: texture.height,
+    frameSize: texture.frameSize,
+    frames: texture.frames,
+    sourceFrames: texture.frames,
+    pixels: encodeTexturePixels(reversedPixels),
+  };
+}
+
+export function speedTexture(
+  texture: SerializedTextureData,
+  speedValues: readonly number[],
+): SerializedTextureData {
+  const sourcePixels = decodeTexturePixels(texture);
+  const frameByteLength = texture.width * texture.frameSize * 4;
+  const retimedPixels = new Uint8ClampedArray(sourcePixels.length);
+  let playbackPosition = 0;
+
+  for (let frameIndex = 0; frameIndex < texture.frames; frameIndex += 1) {
+    const sourceFrameIndex = normalizeFrameIndex(Math.floor(playbackPosition), texture.frames);
+    const sourceStart = sourceFrameIndex * frameByteLength;
+    const targetStart = frameIndex * frameByteLength;
+
+    retimedPixels.set(
+      sourcePixels.subarray(sourceStart, sourceStart + frameByteLength),
+      targetStart,
+    );
+
+    playbackPosition += speedValues[frameIndex] ?? 1;
+  }
+
+  return {
+    name: `${texture.name} (retimed)`,
+    width: texture.width,
+    height: texture.height,
+    frameSize: texture.frameSize,
+    frames: texture.frames,
+    sourceFrames: texture.frames,
+    pixels: encodeTexturePixels(retimedPixels),
+  };
+}
+
+export function holdTexture(
+  texture: SerializedTextureData,
+  holdValues: readonly number[],
+): SerializedTextureData {
+  const sourcePixels = decodeTexturePixels(texture);
+  const frameByteLength = texture.width * texture.frameSize * 4;
+  const heldPixels = new Uint8ClampedArray(sourcePixels.length);
+  let sourceFrameCursor = 0;
+  let outputFrameIndex = 0;
+
+  while (outputFrameIndex < texture.frames) {
+    const holdLength = Math.max(1, Math.round(holdValues[sourceFrameCursor] ?? 1));
+    const sourceFrameIndex = normalizeFrameIndex(sourceFrameCursor, texture.frames);
+    const sourceStart = sourceFrameIndex * frameByteLength;
+
+    for (let repeatIndex = 0; repeatIndex < holdLength && outputFrameIndex < texture.frames; repeatIndex += 1) {
+      const targetStart = outputFrameIndex * frameByteLength;
+
+      heldPixels.set(
+        sourcePixels.subarray(sourceStart, sourceStart + frameByteLength),
+        targetStart,
+      );
+
+      outputFrameIndex += 1;
+    }
+
+    sourceFrameCursor += 1;
+  }
+
+  return {
+    name: `${texture.name} (held)`,
+    width: texture.width,
+    height: texture.height,
+    frameSize: texture.frameSize,
+    frames: texture.frames,
+    sourceFrames: texture.frames,
+    pixels: encodeTexturePixels(heldPixels),
+  };
+}
+
 export function phaseTexture(
   texture: SerializedTextureData,
   frameOffsets: readonly number[],
@@ -671,7 +777,7 @@ export function phaseTexture(
 
   for (let frameIndex = 0; frameIndex < texture.frames; frameIndex += 1) {
     const frameOffset = Math.round(frameOffsets[frameIndex] ?? 0);
-    const sourceFrameIndex = ((frameIndex + frameOffset) % texture.frames + texture.frames) % texture.frames;
+    const sourceFrameIndex = normalizeFrameIndex(frameIndex + frameOffset, texture.frames);
     const sourceStart = sourceFrameIndex * frameByteLength;
     const targetStart = frameIndex * frameByteLength;
 
@@ -702,7 +808,7 @@ export function selectTextureFrames(
 
   for (let frameIndex = 0; frameIndex < texture.frames; frameIndex += 1) {
     const selectedFrame = Math.round(frameIndices[frameIndex] ?? 0);
-    const sourceFrameIndex = ((selectedFrame % texture.frames) + texture.frames) % texture.frames;
+    const sourceFrameIndex = normalizeFrameIndex(selectedFrame, texture.frames);
     const sourceStart = sourceFrameIndex * frameByteLength;
     const targetStart = frameIndex * frameByteLength;
 

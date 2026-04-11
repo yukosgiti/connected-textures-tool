@@ -4,10 +4,10 @@ import {
     BaseNode,
     BaseNodeContent,
     BaseNodeHeader,
-    BaseNodeHeaderTitle
+    BaseNodeHeaderTitle,
 } from "@/components/base-node";
-import { useNodeData, useNodeInputs } from "@/hooks/store";
-import { phaseTexture, type SerializedTextureData } from "@/lib/texture";
+import { useNodeInputs } from "@/hooks/store";
+import { holdTexture, type SerializedTextureData } from "@/lib/texture";
 import { createConstantValueFrames } from "@/lib/utils";
 import useStore from "@/store/graph";
 import { Image01FreeIcons } from "@hugeicons/core-free-icons";
@@ -29,14 +29,13 @@ type ValueNodeData = {
     data?: number[];
 }
 
-type PhaseTextureNodeData = {
+type HoldTextureNodeData = {
     texture?: SerializedTextureData | null;
     error?: string | null;
-    fallbackFrames?: number;
+    fallbackHold?: number;
 }
 
-export const PhaseTextureNode = memo(({ id }: Props) => {
-    const node = useNodeData(id);
+export const HoldTextureNode = memo(({ id }: Props) => {
     const inputData = useNodeInputs(id);
     const setNode = useStore((store) => store.setNode);
     const edges = useStore((store) => store.edges);
@@ -47,64 +46,63 @@ export const PhaseTextureNode = memo(({ id }: Props) => {
         return Array.isArray((input as ValueNodeData).data);
     }) as ValueNodeData | undefined;
     const inputTexture = textureInput?.texture ?? null;
-    const nodeData = (node?.data as PhaseTextureNodeData | undefined) ?? {};
+    const nodeData = useStore((store) => store.getNode(id)?.data as HoldTextureNodeData | undefined) ?? {};
     const texture = nodeData.texture ?? null;
     const error = nodeData.error ?? null;
-    const fallbackFrames = nodeData.fallbackFrames ?? 0;
-    const hasValueInput = React.useMemo(() => {
-        return edges.some((edge) => edge.target === id && edge.targetHandle === "inputValue");
+    const fallbackHold = nodeData.fallbackHold ?? 1;
+    const hasHoldInput = React.useMemo(() => {
+        return edges.some((edge) => edge.target === id && edge.targetHandle === "inputHold");
     }, [edges, id]);
-    const frameOffsets = React.useMemo(() => {
-        return valueInput?.data ?? createConstantValueFrames(fallbackFrames);
-    }, [fallbackFrames, valueInput?.data]);
-    const valueFrames = frameOffsets.length;
+    const holdValues = React.useMemo(() => {
+        return valueInput?.data ?? createConstantValueFrames(fallbackHold);
+    }, [fallbackHold, valueInput?.data]);
+    const valueFrames = holdValues.length;
 
     React.useEffect(() => {
         if (!inputTexture) {
             setNode(id, { texture: null, error: null });
-
             return;
         }
 
         try {
-            const phasedTexture = phaseTexture(inputTexture, frameOffsets);
-            setNode(id, { texture: phasedTexture, error: null });
-        } catch (phaseError) {
-            const message = phaseError instanceof Error
-                ? phaseError.message
-                : "Could not phase the texture.";
+            const heldTexture = holdTexture(inputTexture, holdValues);
+            setNode(id, { texture: heldTexture, error: null });
+        } catch (holdError) {
+            const message = holdError instanceof Error
+                ? holdError.message
+                : "Could not hold the texture frames.";
 
             setNode(id, { texture: null, error: message });
         }
-    }, [frameOffsets, id, inputTexture, setNode, valueFrames]);
+    }, [holdValues, id, inputTexture, setNode, valueFrames]);
 
     return (
         <BaseNode className="w-40">
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Phase Frames
+                    Hold Frames
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>
                 <div className="flex flex-col gap-4">
                     {texture ? <TexturePreview texture={texture} /> : <EmptyTexture />}
                     {error && <p className="text-destructive text-xs">{error}</p>}
-                    {hasValueInput ? (
+                    {hasHoldInput ? (
                         <div className="relative text-xs text-secondary-foreground">
-                            <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! bg-orange-500! border-orange-300!" data-type="value" />
-                            Frames
+                            <Handle type="target" position={Position.Left} id="inputHold" className="size-3! -left-3! bg-orange-500! border-orange-300!" data-type="value" />
+                            Hold
                         </div>
                     ) : (
                         <div className="relative">
-                            <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! top-1/2! -translate-y-1/2 bg-orange-500! border-orange-300!" data-type="value" />
+                            <Handle type="target" position={Position.Left} id="inputHold" className="size-3! -left-3! top-1/2! -translate-y-1/2 bg-orange-500! border-orange-300!" data-type="value" />
                             <ValueFallbackSlider
-                                label="Frames"
-                                value={fallbackFrames}
-                                min={0}
-                                max={59}
+                                label="Hold"
+                                value={fallbackHold}
+                                min={1}
+                                max={16}
                                 step={1}
-                                onChange={(value) => setNode(id, { fallbackFrames: value })}
+                                onChange={(value) => setNode(id, { fallbackHold: value })}
                             />
                         </div>
                     )}
@@ -116,4 +114,4 @@ export const PhaseTextureNode = memo(({ id }: Props) => {
     );
 });
 
-PhaseTextureNode.displayName = "PhaseTextureNode";
+HoldTextureNode.displayName = "HoldTextureNode";

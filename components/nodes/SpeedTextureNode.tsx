@@ -4,10 +4,10 @@ import {
     BaseNode,
     BaseNodeContent,
     BaseNodeHeader,
-    BaseNodeHeaderTitle
+    BaseNodeHeaderTitle,
 } from "@/components/base-node";
-import { useNodeData, useNodeInputs } from "@/hooks/store";
-import { phaseTexture, type SerializedTextureData } from "@/lib/texture";
+import { useNodeInputs } from "@/hooks/store";
+import { speedTexture, type SerializedTextureData } from "@/lib/texture";
 import { createConstantValueFrames } from "@/lib/utils";
 import useStore from "@/store/graph";
 import { Image01FreeIcons } from "@hugeicons/core-free-icons";
@@ -29,14 +29,13 @@ type ValueNodeData = {
     data?: number[];
 }
 
-type PhaseTextureNodeData = {
+type SpeedTextureNodeData = {
     texture?: SerializedTextureData | null;
     error?: string | null;
-    fallbackFrames?: number;
+    fallbackSpeed?: number;
 }
 
-export const PhaseTextureNode = memo(({ id }: Props) => {
-    const node = useNodeData(id);
+export const SpeedTextureNode = memo(({ id }: Props) => {
     const inputData = useNodeInputs(id);
     const setNode = useStore((store) => store.setNode);
     const edges = useStore((store) => store.edges);
@@ -47,64 +46,63 @@ export const PhaseTextureNode = memo(({ id }: Props) => {
         return Array.isArray((input as ValueNodeData).data);
     }) as ValueNodeData | undefined;
     const inputTexture = textureInput?.texture ?? null;
-    const nodeData = (node?.data as PhaseTextureNodeData | undefined) ?? {};
+    const nodeData = useStore((store) => store.getNode(id)?.data as SpeedTextureNodeData | undefined) ?? {};
     const texture = nodeData.texture ?? null;
     const error = nodeData.error ?? null;
-    const fallbackFrames = nodeData.fallbackFrames ?? 0;
-    const hasValueInput = React.useMemo(() => {
-        return edges.some((edge) => edge.target === id && edge.targetHandle === "inputValue");
+    const fallbackSpeed = nodeData.fallbackSpeed ?? 1;
+    const hasSpeedInput = React.useMemo(() => {
+        return edges.some((edge) => edge.target === id && edge.targetHandle === "inputSpeed");
     }, [edges, id]);
-    const frameOffsets = React.useMemo(() => {
-        return valueInput?.data ?? createConstantValueFrames(fallbackFrames);
-    }, [fallbackFrames, valueInput?.data]);
-    const valueFrames = frameOffsets.length;
+    const speedValues = React.useMemo(() => {
+        return valueInput?.data ?? createConstantValueFrames(fallbackSpeed);
+    }, [fallbackSpeed, valueInput?.data]);
+    const valueFrames = speedValues.length;
 
     React.useEffect(() => {
         if (!inputTexture) {
             setNode(id, { texture: null, error: null });
-
             return;
         }
 
         try {
-            const phasedTexture = phaseTexture(inputTexture, frameOffsets);
-            setNode(id, { texture: phasedTexture, error: null });
-        } catch (phaseError) {
-            const message = phaseError instanceof Error
-                ? phaseError.message
-                : "Could not phase the texture.";
+            const retimedTexture = speedTexture(inputTexture, speedValues);
+            setNode(id, { texture: retimedTexture, error: null });
+        } catch (speedError) {
+            const message = speedError instanceof Error
+                ? speedError.message
+                : "Could not retime the texture.";
 
             setNode(id, { texture: null, error: message });
         }
-    }, [frameOffsets, id, inputTexture, setNode, valueFrames]);
+    }, [id, inputTexture, setNode, speedValues, valueFrames]);
 
     return (
         <BaseNode className="w-40">
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Phase Frames
+                    Frame Speed
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>
                 <div className="flex flex-col gap-4">
                     {texture ? <TexturePreview texture={texture} /> : <EmptyTexture />}
                     {error && <p className="text-destructive text-xs">{error}</p>}
-                    {hasValueInput ? (
+                    {hasSpeedInput ? (
                         <div className="relative text-xs text-secondary-foreground">
-                            <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! bg-orange-500! border-orange-300!" data-type="value" />
-                            Frames
+                            <Handle type="target" position={Position.Left} id="inputSpeed" className="size-3! -left-3! bg-orange-500! border-orange-300!" data-type="value" />
+                            Speed
                         </div>
                     ) : (
                         <div className="relative">
-                            <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! top-1/2! -translate-y-1/2 bg-orange-500! border-orange-300!" data-type="value" />
+                            <Handle type="target" position={Position.Left} id="inputSpeed" className="size-3! -left-3! top-1/2! -translate-y-1/2 bg-orange-500! border-orange-300!" data-type="value" />
                             <ValueFallbackSlider
-                                label="Frames"
-                                value={fallbackFrames}
-                                min={0}
-                                max={59}
-                                step={1}
-                                onChange={(value) => setNode(id, { fallbackFrames: value })}
+                                label="Speed"
+                                value={fallbackSpeed}
+                                min={-4}
+                                max={4}
+                                step={0.01}
+                                onChange={(value) => setNode(id, { fallbackSpeed: value })}
                             />
                         </div>
                     )}
@@ -116,4 +114,4 @@ export const PhaseTextureNode = memo(({ id }: Props) => {
     );
 });
 
-PhaseTextureNode.displayName = "PhaseTextureNode";
+SpeedTextureNode.displayName = "SpeedTextureNode";

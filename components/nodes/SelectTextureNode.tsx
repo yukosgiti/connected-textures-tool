@@ -83,7 +83,7 @@ export const SelectTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Select Texture
+                    Select Frame
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>
