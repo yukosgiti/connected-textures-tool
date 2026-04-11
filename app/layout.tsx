@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Geist_Mono, Instrument_Sans } from "next/font/google";
 import Script from "next/script";
 
@@ -15,6 +16,10 @@ const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 })
+
+export const metadata: Metadata = {
+  title: "Connected Textures Tool",
+}
 
 export default function RootLayout({
   children,
