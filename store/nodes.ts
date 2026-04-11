@@ -50,7 +50,7 @@ export function getInitialNodeData(type: AppNodeType) {
     case "texture":
       return { texture: null, error: null };
     case "connectedTexture":
-      return { texture: null, outputTextures: {}, error: null };
+      return { texture: null, outputTextures: {}, error: null, debug: false };
     case "connectedTextureSplit":
       return { texture: null, outputTextures: {}, error: null };
     case "connectedTexturePack":

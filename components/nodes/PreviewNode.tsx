@@ -339,21 +339,8 @@ export const PreviewNode = memo(({ id }: Props) => {
                         style={{ imageRendering: "pixelated" }}
                     />
                 </div>
-                <pre>
 
-                    {cells.map((isEnabled, index) => {
-                        const row = Math.floor(index / gridSize);
-                        const column = index % gridSize;
-                        const emoji = isEnabled ? "⬜" : "⬛";
 
-                        return (
-                            <span key={index} style={{ lineHeight: "1em" }}>
-                                {emoji}
-                                {(index + 1) % gridSize === 0 ? "\n" : ""}
-                            </span>
-                        );
-                    })}
-                </pre>
                 {error && <p className="text-destructive text-xs">{error}</p>}
                 <Handle type="target" position={Position.Left} id="inputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
                 <Handle type="target" position={Position.Left} id={CONNECTED_TEXTURE_INPUT_HANDLE_ID} className="top-14! size-3! bg-indigo-500! border-indigo-300!" data-type="connectedTexture" />

@@ -9,6 +9,8 @@ import {
     BaseNodeHeaderTitle,
 } from "@/components/base-node";
 import { EmptyTexture, TexturePreview } from "@/components/EmptyTexture";
+import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
 import {
     CONNECTED_TEXTURE_OUTPUT_HANDLE_ID,
@@ -32,6 +34,7 @@ type ConnectedTextureNodeData = {
     texture?: SerializedTextureData | null;
     outputTextures?: Record<string, SerializedTextureData | null>;
     error?: string | null;
+    debug?: boolean;
 };
 
 type TextureNodeData = {
@@ -41,8 +44,8 @@ type TextureNodeData = {
 const CONNECTED_TEXTURE_HANDLES = [
     { handleId: "inputTexture", key: "texture", label: "Base" },
     { handleId: "inputSideTop", key: "side_top", label: "Side Top" },
-    { handleId: "inputInnerTopLeft", key: "crn_in_top_lt", label: "Inner TL" },
-    { handleId: "inputOuterTopLeft", key: "crn_out_top_lt", label: "Outer TL" },
+    { handleId: "inputInnerTopLeft", key: "crn_in_top_lt", label: "Inner Top Left" },
+    { handleId: "inputOuterTopLeft", key: "crn_out_top_lt", label: "Outer Top Left" },
 ] as const;
 
 export const ConnectedTextureNode = memo(({ id }: Props) => {
@@ -79,6 +82,7 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
     const texture = nodeData.texture ?? null;
     const outputTextures = nodeData.outputTextures ?? {};
     const error = nodeData.error ?? null;
+    const debug = nodeData.debug ?? false;
     const missingInputs = getConnectedTextureMissingInputs(inputs);
 
     React.useEffect(() => {
@@ -106,6 +110,16 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                     <HugeiconsIcon icon={Image01FreeIcons} />
                     Connected Texture
                 </BaseNodeHeaderTitle>
+                <ButtonGroup>
+                    <Button
+                        variant={debug ? "default" : "outline"}
+                        className="nodrag px-1.5 text-[10px]"
+                        size="xs"
+                        onClick={() => setNode(id, { debug: !debug })}
+                    >
+                        Debug
+                    </Button>
+                </ButtonGroup>
             </BaseNodeHeader>
             <BaseNodeContent>
                 <div className="flex flex-col gap-4">
@@ -128,30 +142,32 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                     </div>
                 ))}
 
-                <div className="nodrag flex max-h-80 flex-col gap-1.5 overflow-auto pr-1">
-                    {CONNECTED_TEXTURE_OUTPUTS.map((output) => {
-                        const outputTexture = outputTextures[output.handleId] ?? null;
+                {debug && (
+                    <div className="nodrag flex max-h-80 flex-col gap-1.5 overflow-auto pr-1">
+                        {CONNECTED_TEXTURE_OUTPUTS.map((output) => {
+                            const outputTexture = outputTextures[output.handleId] ?? null;
 
-                        return (
-                            <div key={output.handleId} className="flex items-center gap-1 text-[10px] text-secondary-foreground">
-                                <span className="w-5 text-right tabular-nums">{output.index}</span>
-                                <Image
-                                    src={`/sample/${output.index}.png`}
-                                    alt={`Sample ${output.index}`}
-                                    width={32}
-                                    height={32}
-                                    className="size-8 object-cover"
-                                    style={{ imageRendering: "pixelated" }}
-                                />
-                                {outputTexture ? (
-                                    <TexturePreview texture={outputTexture} className="size-8" />
-                                ) : (
-                                    <EmptyTexture className="size-8" />
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+                            return (
+                                <div key={output.handleId} className="flex items-center gap-1 text-[10px] text-secondary-foreground">
+                                    <span className="w-5 text-right tabular-nums">{output.index}</span>
+                                    <Image
+                                        src={`/sample/${output.index}.png`}
+                                        alt={`Sample ${output.index}`}
+                                        width={32}
+                                        height={32}
+                                        className="size-8 object-cover"
+                                        style={{ imageRendering: "pixelated" }}
+                                    />
+                                    {outputTexture ? (
+                                        <TexturePreview texture={outputTexture} className="size-8" />
+                                    ) : (
+                                        <EmptyTexture className="size-8" />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
                 <Handle
                     type="source"
                     position={Position.Right}
