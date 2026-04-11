@@ -18,6 +18,7 @@ export const NODE_TYPE_LABELS = {
   mergeTexture: "Merge Texture",
   maskTexture: "Mask Texture",
   preview: "Preview",
+  export: "Export",
 } as const;
 
 export type AppNodeType = keyof typeof NODE_TYPE_LABELS;
@@ -80,6 +81,8 @@ export function getInitialNodeData(type: AppNodeType) {
         cells: createDefaultPreviewCells(DEFAULT_PREVIEW_GRID_SIZE),
         error: null,
       };
+    case "export":
+      return { error: null };
   }
 }
 

@@ -8,6 +8,7 @@ import { PreviewNode } from '@/components/nodes/PreviewNode';
 import { ConnectedTextureNode } from '@/components/nodes/ConnectedTextureNode';
 import { ConnectedTexturePackNode } from '@/components/nodes/ConnectedTexturePackNode';
 import { ConnectedTextureSplitNode } from '@/components/nodes/ConnectedTextureSplitNode';
+import { ExportNode } from '@/components/nodes/ExportNode';
 import { HslTextureNode } from '@/components/nodes/HslTextureNode';
 import { InvertTextureNode } from '@/components/nodes/InvertTextureNode';
 import { MaskTextureNode } from '@/components/nodes/MaskTextureNode';
@@ -44,6 +45,7 @@ function getHandleDataType(nodeType: string | undefined, handleId: string | null
           ? 'texture'
           : null;
     case 'preview':
+    case 'export':
       if (direction !== 'target') {
         return null;
       }
@@ -112,6 +114,7 @@ const useStore = create<AppState>((set, get) => ({
     mergeTexture: MergeTextureNode,
     maskTexture: MaskTextureNode,
     preview: PreviewNode,
+    export: ExportNode,
   },
   onNodesChange: (changes) => {
     set({
