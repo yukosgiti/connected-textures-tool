@@ -1,10 +1,18 @@
-"use client";
-import { GraphHeader } from "@/components/graph-header";
-import { CONNECTED_TEXTURE_OUTPUTS, getConnectedTextureTextureInputHandleId } from "@/lib/connected-texture";
-import { createGraphDocument, downloadGraphDocument, GRAPH_JSON_VERSION, parseGraphDocument } from "@/lib/graph-json";
-import { GRAPH_PRESETS } from "@/lib/graph-presets";
-import useStore from "@/store/graph";
-import { createNode, NODE_TYPE_LABELS, type AppNodeType } from "@/store/nodes";
+"use client"
+import { GraphHeader } from "@/components/graph-header"
+import {
+  CONNECTED_TEXTURE_OUTPUTS,
+  getConnectedTextureTextureInputHandleId,
+} from "@/lib/connected-texture"
+import {
+  createGraphDocument,
+  downloadGraphDocument,
+  GRAPH_JSON_VERSION,
+  parseGraphDocument,
+} from "@/lib/graph-json"
+import { GRAPH_PRESETS } from "@/lib/graph-presets"
+import useStore from "@/store/graph"
+import { createNode, NODE_TYPE_LABELS, type AppNodeType } from "@/store/nodes"
 import {
   ColorPickerIcon,
   DiceIcon,
@@ -13,10 +21,10 @@ import {
   Image01FreeIcons,
   Rotate360FreeIcons,
   ViewIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Background, ReactFlow, type ReactFlowInstance } from '@xyflow/react';
-import React from "react";
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Background, ReactFlow, type ReactFlowInstance } from "@xyflow/react"
+import React from "react"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -28,25 +36,29 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
-} from "../components/ui/context-menu";
+} from "../components/ui/context-menu"
 
 const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
   {
     label: "Inputs",
-    types: ["value", "texture", "colorTexture", "randomTexture"],
+    types: [
+      "value",
+      "texture",
+      "colorTexture",
+      "randomTexture",
+      "sineWaveTexture",
+      "squareWaveTexture",
+    ],
   },
 
   {
     label: "Transform Operations",
-    types: [
-      "rotateTexture",
-      "translateTexture",
-      "scaleTexture",
-    ],
+    types: ["rotateTexture", "translateTexture", "scaleTexture"],
   },
   {
     label: "Color Operations",
     types: [
+      "blurTexture",
       "contrastTexture",
       "hslTexture",
       "invertTexture",
@@ -55,34 +67,44 @@ const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
   },
   {
     label: "Compositing",
-    types: [
-      "mergeTexture",
-      "maskTexture",
-    ],
+    types: ["mergeTexture", "maskTexture"],
   },
   {
     label: "Frame Operations",
-    types: ["reverseTexture", "speedTexture", "holdTexture", "phaseTexture", "selectTexture"],
+    types: [
+      "reverseTexture",
+      "speedTexture",
+      "holdTexture",
+      "phaseTexture",
+      "selectTexture",
+    ],
   },
   {
     label: "Connected Textures",
-    types: ["connectedTexture", "connectedTextureSplit", "connectedTexturePack"],
+    types: [
+      "connectedTexture",
+      "connectedTextureSplit",
+      "connectedTexturePack",
+    ],
   },
-];
+]
 
-const TOP_LEVEL_NODE_TYPES: AppNodeType[] = ["preview", "export"];
+const TOP_LEVEL_NODE_TYPES: AppNodeType[] = ["preview", "export"]
 
 const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
   value: FunctionSquareIcon,
   texture: Image01FreeIcons,
   colorTexture: ColorPickerIcon,
   randomTexture: DiceIcon,
+  sineWaveTexture: Image01FreeIcons,
+  squareWaveTexture: Image01FreeIcons,
   connectedTexture: Image01FreeIcons,
   connectedTextureSplit: Image01FreeIcons,
   connectedTexturePack: Image01FreeIcons,
   rotateTexture: Rotate360FreeIcons,
   translateTexture: Image01FreeIcons,
   scaleTexture: Image01FreeIcons,
+  blurTexture: Image01FreeIcons,
   contrastTexture: Image01FreeIcons,
   reverseTexture: Image01FreeIcons,
   speedTexture: Image01FreeIcons,
@@ -96,19 +118,37 @@ const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
   maskTexture: Image01FreeIcons,
   preview: ViewIcon,
   export: DownloadCircle01Icon,
-};
+}
 
 export default function Page() {
-  const [reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null);
-  const [contextMenuPosition, setContextMenuPosition] = React.useState<{ x: number; y: number } | null>(null);
-  const [graphStatus, setGraphStatus] = React.useState<{ tone: "default" | "error"; message: string } | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] =
+    React.useState<ReactFlowInstance | null>(null)
+  const [contextMenuPosition, setContextMenuPosition] = React.useState<{
+    x: number
+    y: number
+  } | null>(null)
+  const [graphStatus, setGraphStatus] = React.useState<{
+    tone: "default" | "error"
+    message: string
+  } | null>(null)
 
-  const { nodes, edges, nodeTypes, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges } = useStore();
+  const {
+    nodes,
+    edges,
+    nodeTypes,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    setNodes,
+    setEdges,
+  } = useStore()
 
   const menuEntries = React.useMemo(() => {
     const availableNodeTypes = new Set(
-      Object.keys(nodeTypes).filter((type): type is AppNodeType => type in NODE_TYPE_LABELS),
-    );
+      Object.keys(nodeTypes).filter(
+        (type): type is AppNodeType => type in NODE_TYPE_LABELS
+      )
+    )
 
     const groupedEntries = NODE_SUBMENU_GROUPS.map((group) => ({
       label: group.label,
@@ -118,129 +158,166 @@ export default function Page() {
           type,
           label: NODE_TYPE_LABELS[type],
         })),
-    })).filter((group) => group.entries.length > 0);
+    })).filter((group) => group.entries.length > 0)
 
-    const groupedTypes = new Set(groupedEntries.flatMap((group) => group.entries.map((entry) => entry.type)));
-    const topLevelEntries = TOP_LEVEL_NODE_TYPES
-      .filter((type) => availableNodeTypes.has(type))
-      .map((type) => ({
-        type,
-        label: NODE_TYPE_LABELS[type],
-      }));
+    const groupedTypes = new Set(
+      groupedEntries.flatMap((group) =>
+        group.entries.map((entry) => entry.type)
+      )
+    )
+    const topLevelEntries = TOP_LEVEL_NODE_TYPES.filter((type) =>
+      availableNodeTypes.has(type)
+    ).map((type) => ({
+      type,
+      label: NODE_TYPE_LABELS[type],
+    }))
 
-    const assignedTypes = new Set([...groupedTypes, ...topLevelEntries.map((entry) => entry.type)]);
+    const assignedTypes = new Set([
+      ...groupedTypes,
+      ...topLevelEntries.map((entry) => entry.type),
+    ])
     const remainingEntries = [...availableNodeTypes]
       .filter((type) => !assignedTypes.has(type))
       .map((type) => ({
         type,
         label: NODE_TYPE_LABELS[type],
-      }));
+      }))
 
     return {
       groupedEntries,
       topLevelEntries,
       remainingEntries,
-    };
-  }, [nodeTypes]);
+    }
+  }, [nodeTypes])
 
-  const onContextMenuCapture = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    setContextMenuPosition({ x: event.clientX, y: event.clientY });
-  }, []);
+  const onContextMenuCapture = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      setContextMenuPosition({ x: event.clientX, y: event.clientY })
+    },
+    []
+  )
 
   const fitGraphView = React.useCallback(() => {
     requestAnimationFrame(() => {
-      reactFlowInstance?.fitView();
-    });
-  }, [reactFlowInstance]);
+      reactFlowInstance?.fitView()
+    })
+  }, [reactFlowInstance])
 
-  const applyGraphDocument = React.useCallback((rawDocument: unknown, sourceLabel: string) => {
-    const document = parseGraphDocument(rawDocument);
+  const applyGraphDocument = React.useCallback(
+    (rawDocument: unknown, sourceLabel: string) => {
+      const document = parseGraphDocument(rawDocument)
 
-    setNodes(document.nodes);
-    setEdges(document.edges);
-    setGraphStatus({
-      tone: "default",
-      message: `Loaded ${document.name ?? sourceLabel} (v${document.version}).`,
-    });
-    fitGraphView();
-  }, [fitGraphView, setEdges, setNodes]);
+      setNodes(document.nodes)
+      setEdges(document.edges)
+      setGraphStatus({
+        tone: "default",
+        message: `Loaded ${document.name ?? sourceLabel} (v${document.version}).`,
+      })
+      fitGraphView()
+    },
+    [fitGraphView, setEdges, setNodes]
+  )
 
-  const handleLoadPreset = React.useCallback((presetId: string) => {
-    const preset = GRAPH_PRESETS.find((entry) => entry.id === presetId);
+  const handleLoadPreset = React.useCallback(
+    (presetId: string) => {
+      const preset = GRAPH_PRESETS.find((entry) => entry.id === presetId)
 
-    if (!preset) {
-      setGraphStatus({ tone: "error", message: "Selected preset JSON was not found." });
-      return;
-    }
+      if (!preset) {
+        setGraphStatus({
+          tone: "error",
+          message: "Selected preset JSON was not found.",
+        })
+        return
+      }
 
-    try {
-      applyGraphDocument(preset.document, preset.label);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not load the preset JSON.";
-      setGraphStatus({ tone: "error", message });
-    }
-  }, [applyGraphDocument]);
+      try {
+        applyGraphDocument(preset.document, preset.label)
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not load the preset JSON."
+        setGraphStatus({ tone: "error", message })
+      }
+    },
+    [applyGraphDocument]
+  )
 
-  const handleImportFile = React.useCallback(async (file: File) => {
-    try {
-      const fileContent = await file.text();
-      const parsed = JSON.parse(fileContent) as unknown;
+  const handleImportFile = React.useCallback(
+    async (file: File) => {
+      try {
+        const fileContent = await file.text()
+        const parsed = JSON.parse(fileContent) as unknown
 
-      applyGraphDocument(parsed, file.name);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not import the graph JSON.";
-      setGraphStatus({ tone: "error", message });
-    }
-  }, [applyGraphDocument]);
+        applyGraphDocument(parsed, file.name)
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not import the graph JSON."
+        setGraphStatus({ tone: "error", message })
+      }
+    },
+    [applyGraphDocument]
+  )
 
   const handleExport = React.useCallback(() => {
     try {
-      const document = createGraphDocument(nodes, edges, "graph");
+      const document = createGraphDocument(nodes, edges, "graph")
 
-      downloadGraphDocument(document);
+      downloadGraphDocument(document)
       setGraphStatus({
         tone: "default",
         message: `Exported ${document.name ?? "graph"} as v${document.version} JSON.`,
-      });
+      })
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not export the graph JSON.";
-      setGraphStatus({ tone: "error", message });
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not export the graph JSON."
+      setGraphStatus({ tone: "error", message })
     }
-  }, [edges, nodes]);
+  }, [edges, nodes])
 
-  const handleAddNode = React.useCallback((type: AppNodeType) => {
-    if (!reactFlowInstance || !contextMenuPosition) {
-      return;
-    }
+  const handleAddNode = React.useCallback(
+    (type: AppNodeType) => {
+      if (!reactFlowInstance || !contextMenuPosition) {
+        return
+      }
 
-    const position = reactFlowInstance.screenToFlowPosition(contextMenuPosition);
+      const position =
+        reactFlowInstance.screenToFlowPosition(contextMenuPosition)
 
-    if (type === "connectedTextureSplit" || type === "connectedTexturePack") {
-      const splitPosition = type === "connectedTextureSplit"
-        ? position
-        : { x: position.x - 420, y: position.y };
-      const packPosition = type === "connectedTexturePack"
-        ? position
-        : { x: position.x + 420, y: position.y };
-      const splitNode = createNode("connectedTextureSplit", splitPosition);
-      const packNode = createNode("connectedTexturePack", packPosition);
-      const nextEdges = CONNECTED_TEXTURE_OUTPUTS.map((output) => ({
-        id: `${splitNode.id}-${packNode.id}-${output.index}`,
-        source: splitNode.id,
-        sourceHandle: output.handleId,
-        target: packNode.id,
-        targetHandle: getConnectedTextureTextureInputHandleId(output.index),
-      }));
+      if (type === "connectedTextureSplit" || type === "connectedTexturePack") {
+        const splitPosition =
+          type === "connectedTextureSplit"
+            ? position
+            : { x: position.x - 420, y: position.y }
+        const packPosition =
+          type === "connectedTexturePack"
+            ? position
+            : { x: position.x + 420, y: position.y }
+        const splitNode = createNode("connectedTextureSplit", splitPosition)
+        const packNode = createNode("connectedTexturePack", packPosition)
+        const nextEdges = CONNECTED_TEXTURE_OUTPUTS.map((output) => ({
+          id: `${splitNode.id}-${packNode.id}-${output.index}`,
+          source: splitNode.id,
+          sourceHandle: output.handleId,
+          target: packNode.id,
+          targetHandle: getConnectedTextureTextureInputHandleId(output.index),
+        }))
 
-      setNodes([...useStore.getState().nodes, splitNode, packNode]);
-      setEdges([...useStore.getState().edges, ...nextEdges]);
-      return;
-    }
+        setNodes([...useStore.getState().nodes, splitNode, packNode])
+        setEdges([...useStore.getState().edges, ...nextEdges])
+        return
+      }
 
-    const nextNode = createNode(type, position);
+      const nextNode = createNode(type, position)
 
-    setNodes([...useStore.getState().nodes, nextNode]);
-  }, [contextMenuPosition, reactFlowInstance, setEdges, setNodes]);
+      setNodes([...useStore.getState().nodes, nextNode])
+    },
+    [contextMenuPosition, reactFlowInstance, setEdges, setNodes]
+  )
 
   return (
     <div className="min-h-svh p-6">
@@ -256,7 +333,10 @@ export default function Page() {
 
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div className="h-[80vh] w-[80vw] border-2 border-secondary rounded-lg bg-secondary dark:bg-background" onContextMenuCapture={onContextMenuCapture}>
+            <div
+              className="h-[80vh] w-[80vw] rounded-lg border-2 border-secondary bg-secondary dark:bg-background"
+              onContextMenuCapture={onContextMenuCapture}
+            >
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -283,31 +363,53 @@ export default function Page() {
                     <ContextMenuSeparator />
                     <ContextMenuGroup>
                       {group.entries.map(({ type, label }) => (
-                        <ContextMenuItem key={type} onSelect={() => handleAddNode(type)}>
-                          <HugeiconsIcon icon={NODE_TYPE_ICONS[type]} className="text-muted-foreground size-5 mr-1" />
+                        <ContextMenuItem
+                          key={type}
+                          onSelect={() => handleAddNode(type)}
+                        >
+                          <HugeiconsIcon
+                            icon={NODE_TYPE_ICONS[type]}
+                            className="mr-1 size-5 text-muted-foreground"
+                          />
                           {label}
                         </ContextMenuItem>
                       ))}
                     </ContextMenuGroup>
                   </ContextMenuSubContent>
                 </ContextMenuSub>
-                {index === menuEntries.groupedEntries.length - 1 ? null : <ContextMenuSeparator />}
+                {index === menuEntries.groupedEntries.length - 1 ? null : (
+                  <ContextMenuSeparator />
+                )}
               </React.Fragment>
             ))}
             {menuEntries.topLevelEntries.length > 0 && <ContextMenuSeparator />}
             <ContextMenuGroup>
               {menuEntries.topLevelEntries.map(({ type, label }) => (
-                <ContextMenuItem key={type} onSelect={() => handleAddNode(type)}>
-                  <HugeiconsIcon icon={NODE_TYPE_ICONS[type]} className="text-muted-foreground size-5 mr-1" />
+                <ContextMenuItem
+                  key={type}
+                  onSelect={() => handleAddNode(type)}
+                >
+                  <HugeiconsIcon
+                    icon={NODE_TYPE_ICONS[type]}
+                    className="mr-1 size-5 text-muted-foreground"
+                  />
                   {label}
                 </ContextMenuItem>
               ))}
             </ContextMenuGroup>
-            {menuEntries.remainingEntries.length > 0 && <ContextMenuSeparator />}
+            {menuEntries.remainingEntries.length > 0 && (
+              <ContextMenuSeparator />
+            )}
             <ContextMenuGroup>
               {menuEntries.remainingEntries.map(({ type, label }) => (
-                <ContextMenuItem key={type} onSelect={() => handleAddNode(type)}>
-                  <HugeiconsIcon icon={NODE_TYPE_ICONS[type]} className="text-muted-foreground size-5 mr-1" />
+                <ContextMenuItem
+                  key={type}
+                  onSelect={() => handleAddNode(type)}
+                >
+                  <HugeiconsIcon
+                    icon={NODE_TYPE_ICONS[type]}
+                    className="mr-1 size-5 text-muted-foreground"
+                  />
                   {label}
                 </ContextMenuItem>
               ))}
