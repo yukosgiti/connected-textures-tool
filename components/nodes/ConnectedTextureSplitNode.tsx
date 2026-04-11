@@ -108,7 +108,7 @@ export const ConnectedTextureSplitNode = memo(({ id }: Props) => {
                         const outputTexture = outputTextures[output.handleId] ?? null;
 
                         return (
-                            <div key={output.handleId} className="flex items-center justify-end gap-1 pr-3 text-[10px] text-secondary-foreground">
+                            <div key={output.handleId} className="relative flex items-center justify-end gap-1 pr-3 text-[10px] text-secondary-foreground">
                                 <Handle
                                     type="source"
                                     position={Position.Right}

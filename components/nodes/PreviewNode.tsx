@@ -344,7 +344,6 @@ export const PreviewNode = memo(({ id }: Props) => {
                     {cells.map((isEnabled, index) => {
                         const row = Math.floor(index / gridSize);
                         const column = index % gridSize;
-                        const isEven = (row + column) % 2 === 0;
                         const emoji = isEnabled ? "⬜" : "⬛";
 
                         return (
