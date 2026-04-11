@@ -51,19 +51,42 @@ type ConnectedTextureManifest = {
 };
 
 type ConnectedTextureFrames = Uint8ClampedArray[];
+type ConnectedTextureNeighbors = {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
+  topLeft: boolean;
+  topRight: boolean;
+  bottomLeft: boolean;
+  bottomRight: boolean;
+};
 
 export type ConnectedTextureInputs = Partial<Record<ConnectedTextureInputKey, SerializedTextureData | null>>;
 export type ConnectedTextureOutputTextures = Record<string, SerializedTextureData>;
+export type ConnectedTextureData = {
+  texture: SerializedTextureData;
+  outputTextures: ConnectedTextureOutputTextures;
+};
 
 const manifest = connectedTextureManifest as ConnectedTextureManifest;
 
 export const CONNECTED_TEXTURE_REQUIRED_INPUTS = manifest.requiredInputs;
 export const CONNECTED_TEXTURE_TEMPLATE_COUNT = manifest.frameCount;
+export const CONNECTED_TEXTURE_INPUT_HANDLE_ID = "inputConnectedTexture";
+export const CONNECTED_TEXTURE_OUTPUT_HANDLE_ID = "outputConnectedTexture";
 export const CONNECTED_TEXTURE_OUTPUTS = manifest.templates.map((template) => ({
   handleId: `outputTexture${template.index}`,
   label: `${template.index}`,
   index: template.index,
 }));
+const CONNECTED_TEXTURE_TEMPLATE_LOOKUP = new Map(
+  manifest.templates.map((template) => [sortTemplateLayers(template.layers).join("|"), template.index]),
+);
+
+export function getConnectedTextureTextureInputHandleId(index: number) {
+  return `inputTexture${index}`;
+}
 
 export function createEmptyConnectedTextureInputs(): Record<ConnectedTextureInputKey, null> {
   return {
@@ -229,6 +252,174 @@ function sortTemplateLayers(layers: ConnectedTextureAssetKey[]) {
   return [...sides, ...corners];
 }
 
+function createConnectedTexturePreviewTexture(
+  name: string,
+  outputTextures: ConnectedTextureOutputTextures,
+) {
+  const firstOutput = outputTextures[CONNECTED_TEXTURE_OUTPUTS[0]?.handleId ?? ""];
+
+  if (!firstOutput) {
+    throw new Error("Connected texture outputs are required.");
+  }
+
+  const frameByteLength = firstOutput.frameSize * firstOutput.frameSize * 4;
+  const previewPixels = new Uint8ClampedArray(frameByteLength * CONNECTED_TEXTURE_OUTPUTS.length);
+
+  for (const output of CONNECTED_TEXTURE_OUTPUTS) {
+    const outputTexture = outputTextures[output.handleId];
+
+    if (!outputTexture) {
+      throw new Error(`Missing connected texture output ${output.index}.`);
+    }
+
+    previewPixels.set(getTextureFramePixels(outputTexture, 0), output.index * frameByteLength);
+  }
+
+  return {
+    name,
+    width: firstOutput.frameSize,
+    height: firstOutput.frameSize * CONNECTED_TEXTURE_OUTPUTS.length,
+    frameSize: firstOutput.frameSize,
+    frames: CONNECTED_TEXTURE_OUTPUTS.length,
+    sourceFrames: CONNECTED_TEXTURE_OUTPUTS.length,
+    pixels: encodeTexturePixels(previewPixels),
+  };
+}
+
+function assertCompatibleConnectedTextureOutput(
+  referenceTexture: SerializedTextureData,
+  outputTexture: SerializedTextureData,
+  index: number,
+) {
+  if (
+    outputTexture.width !== referenceTexture.width
+    || outputTexture.frameSize !== referenceTexture.frameSize
+    || outputTexture.frames !== referenceTexture.frames
+  ) {
+    throw new Error(`Connected texture output ${index} does not match the other output dimensions.`);
+  }
+}
+
+export function packConnectedTextureOutputs(
+  partialOutputs: Partial<Record<string, SerializedTextureData | null>>,
+  name = "Connected Texture",
+): ConnectedTextureData {
+  const firstOutputMeta = CONNECTED_TEXTURE_OUTPUTS[0];
+  const firstOutput = firstOutputMeta ? partialOutputs[firstOutputMeta.handleId] ?? null : null;
+
+  if (!firstOutput) {
+    throw new Error("Connected texture outputs are required.");
+  }
+
+  const outputTextures: ConnectedTextureOutputTextures = {};
+
+  for (const output of CONNECTED_TEXTURE_OUTPUTS) {
+    const outputTexture = partialOutputs[output.handleId] ?? null;
+
+    if (!outputTexture) {
+      throw new Error(`Missing connected texture output ${output.index}.`);
+    }
+
+    assertCompatibleConnectedTextureOutput(firstOutput, outputTexture, output.index);
+    outputTextures[output.handleId] = outputTexture;
+  }
+
+  return {
+    texture: createConnectedTexturePreviewTexture(name, outputTextures),
+    outputTextures,
+  };
+}
+
+function getCell(cells: boolean[], gridSize: number, column: number, row: number) {
+  if (column < 0 || row < 0 || column >= gridSize || row >= gridSize) {
+    return false;
+  }
+
+  return cells[(row * gridSize) + column] ?? false;
+}
+
+function getConnectedTextureNeighbors(cells: boolean[], gridSize: number, cellIndex: number): ConnectedTextureNeighbors {
+  const column = cellIndex % gridSize;
+  const row = Math.floor(cellIndex / gridSize);
+
+  return {
+    top: getCell(cells, gridSize, column, row - 1),
+    right: getCell(cells, gridSize, column + 1, row),
+    bottom: getCell(cells, gridSize, column, row + 1),
+    left: getCell(cells, gridSize, column - 1, row),
+    topLeft: getCell(cells, gridSize, column - 1, row - 1),
+    topRight: getCell(cells, gridSize, column + 1, row - 1),
+    bottomLeft: getCell(cells, gridSize, column - 1, row + 1),
+    bottomRight: getCell(cells, gridSize, column + 1, row + 1),
+  };
+}
+
+function getConnectedTextureLayersFromNeighbors(neighbors: ConnectedTextureNeighbors) {
+  const layers: ConnectedTextureAssetKey[] = [];
+
+  if (!neighbors.top) {
+    layers.push("side_top");
+  }
+
+  if (!neighbors.right) {
+    layers.push("side_rt");
+  }
+
+  if (!neighbors.bottom) {
+    layers.push("side_btm");
+  }
+
+  if (!neighbors.left) {
+    layers.push("side_lt");
+  }
+
+  if (!neighbors.top && !neighbors.left) {
+    layers.push("crn_in_top_lt");
+  }
+
+  if (!neighbors.top && !neighbors.right) {
+    layers.push("crn_in_top_rt");
+  }
+
+  if (!neighbors.bottom && !neighbors.left) {
+    layers.push("crn_in_btm_lt");
+  }
+
+  if (!neighbors.bottom && !neighbors.right) {
+    layers.push("crn_in_btm_rt");
+  }
+
+  if (neighbors.top && neighbors.left && !neighbors.topLeft) {
+    layers.push("crn_out_top_lt");
+  }
+
+  if (neighbors.top && neighbors.right && !neighbors.topRight) {
+    layers.push("crn_out_top_rt");
+  }
+
+  if (neighbors.bottom && neighbors.left && !neighbors.bottomLeft) {
+    layers.push("crn_out_btm_lt");
+  }
+
+  if (neighbors.bottom && neighbors.right && !neighbors.bottomRight) {
+    layers.push("crn_out_btm_rt");
+  }
+
+  return sortTemplateLayers(layers);
+}
+
+export function getConnectedTextureTemplateIndex(cells: boolean[], gridSize: number, cellIndex: number) {
+  if (!cells[cellIndex]) {
+    return null;
+  }
+
+  const neighbors = getConnectedTextureNeighbors(cells, gridSize, cellIndex);
+  const layers = getConnectedTextureLayersFromNeighbors(neighbors);
+  const templateIndex = CONNECTED_TEXTURE_TEMPLATE_LOOKUP.get(layers.join("|"));
+
+  return templateIndex ?? null;
+}
+
 function createConnectedTextureOutput(
   baseTexture: SerializedTextureData,
   pixels: Uint8ClampedArray,
@@ -246,7 +437,7 @@ function createConnectedTextureOutput(
   };
 }
 
-export function generateConnectedTexture(inputs: ConnectedTextureInputs) {
+export function generateConnectedTexture(inputs: ConnectedTextureInputs): ConnectedTextureData {
   const baseTexture = getRequiredInputTexture(inputs, "texture");
   const textureSize = baseTexture.frameSize;
   const textureFrames = baseTexture.frames;
@@ -282,7 +473,6 @@ export function generateConnectedTexture(inputs: ConnectedTextureInputs) {
   }
 
   const frameByteLength = textureSize * textureSize * 4;
-  const outputPixels = new Uint8ClampedArray(frameByteLength * manifest.templates.length);
   const outputTextures: ConnectedTextureOutputTextures = {};
   const baseFrames = resolvedInputs.get("texture");
 
@@ -308,10 +498,6 @@ export function generateConnectedTexture(inputs: ConnectedTextureInputs) {
       }
 
       outputTexturePixels.set(framePixels, frameIndex * frameByteLength);
-
-      if (frameIndex === 0) {
-        outputPixels.set(framePixels, template.index * frameByteLength);
-      }
     }
 
     outputTextures[`outputTexture${template.index}`] = createConnectedTextureOutput(
@@ -322,16 +508,5 @@ export function generateConnectedTexture(inputs: ConnectedTextureInputs) {
     );
   }
 
-  return {
-    texture: {
-      name: `${baseTexture.name} (connected)`,
-      width: textureSize,
-      height: textureSize * manifest.templates.length,
-      frameSize: textureSize,
-      frames: manifest.templates.length,
-      sourceFrames: manifest.templates.length,
-      pixels: encodeTexturePixels(outputPixels),
-    },
-    outputTextures,
-  };
+  return packConnectedTextureOutputs(outputTextures, `${baseTexture.name} (connected)`);
 }

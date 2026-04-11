@@ -6,6 +6,8 @@ export const NODE_TYPE_LABELS = {
   value: "Value",
   texture: "Texture",
   connectedTexture: "Connected Texture",
+  connectedTextureSplit: "Connected Texture Split",
+  connectedTexturePack: "Textures To Connected Texture",
   rotateTexture: "Rotate Texture",
   translateTexture: "Translate Texture",
   scaleTexture: "Scale Texture",
@@ -48,6 +50,10 @@ export function getInitialNodeData(type: AppNodeType) {
     case "texture":
       return { texture: null, error: null };
     case "connectedTexture":
+      return { texture: null, outputTextures: {}, error: null };
+    case "connectedTextureSplit":
+      return { texture: null, outputTextures: {}, error: null };
+    case "connectedTexturePack":
       return { texture: null, outputTextures: {}, error: null };
     case "rotateTexture":
       return { texture: null, error: null, fallbackValue: 0 };

@@ -1,4 +1,5 @@
 "use client";
+import { CONNECTED_TEXTURE_OUTPUTS, getConnectedTextureTextureInputHandleId } from "@/lib/connected-texture";
 import useStore from "@/store/graph";
 import { createNode, NODE_TYPE_LABELS, type AppNodeType } from "@/store/nodes";
 import { Background, ReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -16,7 +17,7 @@ export default function Page() {
   const [reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null);
   const [contextMenuPosition, setContextMenuPosition] = React.useState<{ x: number; y: number } | null>(null);
 
-  const { nodes, edges, nodeTypes, onNodesChange, onEdgesChange, onConnect, setNodes } = useStore();
+  const { nodes, edges, nodeTypes, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges } = useStore();
 
   const nodeTypeEntries = React.useMemo(() => {
     return Object.keys(nodeTypes)
@@ -37,10 +38,33 @@ export default function Page() {
     }
 
     const position = reactFlowInstance.screenToFlowPosition(contextMenuPosition);
+
+    if (type === "connectedTextureSplit" || type === "connectedTexturePack") {
+      const splitPosition = type === "connectedTextureSplit"
+        ? position
+        : { x: position.x - 420, y: position.y };
+      const packPosition = type === "connectedTexturePack"
+        ? position
+        : { x: position.x + 420, y: position.y };
+      const splitNode = createNode("connectedTextureSplit", splitPosition);
+      const packNode = createNode("connectedTexturePack", packPosition);
+      const nextEdges = CONNECTED_TEXTURE_OUTPUTS.map((output) => ({
+        id: `${splitNode.id}-${packNode.id}-${output.index}`,
+        source: splitNode.id,
+        sourceHandle: output.handleId,
+        target: packNode.id,
+        targetHandle: getConnectedTextureTextureInputHandleId(output.index),
+      }));
+
+      setNodes([...useStore.getState().nodes, splitNode, packNode]);
+      setEdges([...useStore.getState().edges, ...nextEdges]);
+      return;
+    }
+
     const nextNode = createNode(type, position);
 
     setNodes([...useStore.getState().nodes, nextNode]);
-  }, [contextMenuPosition, reactFlowInstance, setNodes]);
+  }, [contextMenuPosition, reactFlowInstance, setEdges, setNodes]);
 
   return (
     <div className="min-h-svh p-6">

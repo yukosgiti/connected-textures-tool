@@ -17,8 +17,9 @@ import { type NodeDataPatch } from "@/store/types";
 import { Image01FreeIcons, X } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Handle, Position } from "@xyflow/react";
+import Image from "next/image";
 import React from "react";
-import { normalizeTextureFile, type SerializedTextureData } from "../../lib/texture";
+import { normalizeTextureFile, normalizeTextureUrl, type SerializedTextureData } from "../../lib/texture";
 import { EmptyTexture, TexturePreview } from "../EmptyTexture";
 import { Button } from "../ui/button";
 
@@ -32,6 +33,23 @@ type TextureNodeData = {
     texture?: SerializedTextureData | null;
     error?: string | null;
 }
+
+const PRESET_TEXTURE_ASSETS = [
+    { name: "cobblestone.png", src: "/assets/cobblestone.png" },
+    { name: "texture.png", src: "/assets/texture.png" },
+    { name: "side_top.png", src: "/assets/side_top.png" },
+    { name: "side_rt.png", src: "/assets/side_rt.png" },
+    { name: "side_btm.png", src: "/assets/side_btm.png" },
+    { name: "side_lt.png", src: "/assets/side_lt.png" },
+    { name: "crn_in_top_lt.png", src: "/assets/crn_in_top_lt.png" },
+    { name: "crn_in_top_rt.png", src: "/assets/crn_in_top_rt.png" },
+    { name: "crn_in_btm_rt.png", src: "/assets/crn_in_btm_rt.png" },
+    { name: "crn_in_btm_lt.png", src: "/assets/crn_in_btm_lt.png" },
+    { name: "crn_out_top_lt.png", src: "/assets/crn_out_top_lt.png" },
+    { name: "crn_out_top_rt.png", src: "/assets/crn_out_top_rt.png" },
+    { name: "crn_out_btm_rt.png", src: "/assets/crn_out_btm_rt.png" },
+    { name: "crn_out_btm_lt.png", src: "/assets/crn_out_btm_lt.png" },
+] as const;
 
 
 const useTextureNode = (id: string) => {
@@ -98,6 +116,24 @@ export const TextureNode = memo(({ id }: Props) => {
         }
     }, [setNodeData]);
 
+    const onPresetSelect = React.useCallback(async (preset: (typeof PRESET_TEXTURE_ASSETS)[number]) => {
+        setIsUploading(true);
+
+        try {
+            const normalizedTexture = await normalizeTextureUrl(preset.src, preset.name);
+            setNodeData({ texture: normalizedTexture, error: null });
+        } catch (presetError) {
+            const error = presetError instanceof Error
+                ? presetError
+                : new Error("Could not process the preset texture.");
+
+            setNodeData({ texture: null, error: error.message });
+        } finally {
+            setFiles([]);
+            setIsUploading(false);
+        }
+    }, [setNodeData]);
+
     return (
         <BaseNode className="w-40">
             <BaseNodeHeader>
@@ -145,10 +181,30 @@ export const TextureNode = memo(({ id }: Props) => {
                         </FileUpload>
 
                     </div>
-                    {isUploading && <p className="text-muted-foreground text-xs">Processing texture…</p>}
-                    {texture && !isUploading && <p className="text-muted-foreground text-xs">
-                        {texture.name} · repeats every {texture.sourceFrames} frame{texture.sourceFrames === 1 ? "" : "s"}
-                    </p>}
+                    {/* {isUploading && <p className="text-muted-foreground text-xs">Processing texture…</p>} */}
+
+                    <div className="nodrag flex flex-wrap gap-0.5">
+                        {PRESET_TEXTURE_ASSETS.map((preset) => (
+                            <Button
+                                key={preset.src}
+                                variant={texture?.name === preset.name ? "default" : "outline"}
+                                size="icon"
+                                className="size-4 overflow-hidden rounded-xs p-0"
+                                onClick={() => onPresetSelect(preset)}
+                                title={preset.name}
+                                disabled={isUploading}
+                            >
+                                <Image
+                                    src={preset.src}
+                                    alt={preset.name}
+                                    width={32}
+                                    height={32}
+                                    className="size-4 object-cover"
+                                    style={{ imageRendering: "pixelated" }}
+                                />
+                            </Button>
+                        ))}
+                    </div>
                     {error && <p className="text-destructive text-xs">{error}</p>}
                     <div className="flex  nodrag self-center relative isolate  w-full">
 

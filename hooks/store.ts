@@ -1,4 +1,5 @@
 import React from "react";
+import { CONNECTED_TEXTURE_OUTPUT_HANDLE_ID } from "@/lib/connected-texture";
 import { type SerializedTextureData } from "@/lib/texture";
 import useStore from "@/store/graph";
 
@@ -9,6 +10,10 @@ type TextureOutputNodeData = {
 
 export const resolveNodeOutputData = <T,>(nodeData: T, sourceHandle?: string | null): T => {
     if (!sourceHandle || typeof nodeData !== "object" || nodeData === null) {
+        return nodeData;
+    }
+
+    if (sourceHandle === CONNECTED_TEXTURE_OUTPUT_HANDLE_ID) {
         return nodeData;
     }
 

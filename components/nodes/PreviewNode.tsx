@@ -7,7 +7,11 @@ import {
     BaseNodeHeaderTitle
 } from "@/components/base-node";
 import { Button } from "@/components/ui/button";
-import { useNodeData, useNodeInputs } from "@/hooks/store";
+import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
+import {
+    CONNECTED_TEXTURE_INPUT_HANDLE_ID,
+    getConnectedTextureTemplateIndex,
+} from "@/lib/connected-texture";
 import { decodeTexturePixels, type SerializedTextureData } from "@/lib/texture";
 import { FRAMES } from "@/lib/utils";
 import useStore from "@/store/graph";
@@ -26,6 +30,11 @@ type TextureNodeData = {
     texture?: SerializedTextureData | null;
 }
 
+type ConnectedTextureNodeData = {
+    texture?: SerializedTextureData | null;
+    outputTextures?: Record<string, SerializedTextureData | null>;
+}
+
 type PreviewNodeData = {
     texture?: SerializedTextureData | null;
     gridSize?: number;
@@ -39,14 +48,32 @@ const CHECKER_LIGHT = "rgba(0, 0, 0, 0)";
 
 export const PreviewNode = memo(({ id }: Props) => {
     const node = useNodeData(id);
-    const inputData = useNodeInputs(id);
     const setNode = useStore((store) => store.setNode);
-    const textureInput = inputData.find((input) => {
-        return Boolean((input as TextureNodeData).texture);
-    }) as TextureNodeData | undefined;
+    const nodes = useStore((store) => store.nodes);
+    const edges = useStore((store) => store.edges);
+    const inputMap = React.useMemo(() => {
+        return edges
+            .filter((edge) => edge.target === id)
+            .reduce<Record<string, unknown>>((accumulator, edge) => {
+                const sourceNode = nodes.find((nodeEntry) => nodeEntry.id === edge.source);
+
+                if (sourceNode && edge.targetHandle) {
+                    accumulator[edge.targetHandle] = resolveNodeOutputData(sourceNode.data, edge.sourceHandle);
+                }
+
+                return accumulator;
+            }, {});
+    }, [edges, id, nodes]);
+    const textureInput = inputMap.inputTexture as TextureNodeData | undefined;
+    const connectedTextureInput = inputMap[CONNECTED_TEXTURE_INPUT_HANDLE_ID] as ConnectedTextureNodeData | undefined;
     const nodeData = (node?.data as PreviewNodeData | undefined) ?? {};
     const texture = nodeData.texture ?? null;
     const inputTexture = textureInput?.texture ?? null;
+    const inputConnectedTexture = connectedTextureInput ?? null;
+    const connectedOutputTextures = inputConnectedTexture?.outputTextures ?? {};
+    const firstConnectedTexture = React.useMemo(() => {
+        return Object.values(connectedOutputTextures).find((outputTexture) => Boolean(outputTexture)) ?? null;
+    }, [connectedOutputTextures]);
     const error = nodeData.error ?? null;
     const gridSize = PREVIEW_GRID_OPTIONS.includes(nodeData.gridSize as (typeof PREVIEW_GRID_OPTIONS)[number])
         ? nodeData.gridSize as (typeof PREVIEW_GRID_OPTIONS)[number]
@@ -64,9 +91,17 @@ export const PreviewNode = memo(({ id }: Props) => {
 
         return nextCells;
     }, [defaultPreviewCells, gridCells, nodeData.cells]);
+    const activePreviewTexture = inputConnectedTexture?.texture ?? inputTexture ?? texture;
     const decodedPixels = React.useMemo(() => {
-        return texture ? decodeTexturePixels(texture) : null;
-    }, [texture]);
+        return activePreviewTexture ? decodeTexturePixels(activePreviewTexture) : null;
+    }, [activePreviewTexture]);
+    const decodedConnectedTextures = React.useMemo(() => {
+        return Object.fromEntries(
+            Object.entries(connectedOutputTextures).map(([handleId, outputTexture]) => {
+                return [handleId, outputTexture ? decodeTexturePixels(outputTexture) : null];
+            }),
+        ) as Record<string, Uint8ClampedArray | null>;
+    }, [connectedOutputTextures]);
     const [frameIndex, setFrameIndex] = React.useState(0);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -82,11 +117,13 @@ export const PreviewNode = memo(({ id }: Props) => {
     }, [defaultPreviewCells, gridCells, gridSize, id, nodeData.cells, nodeData.gridSize, setNode]);
 
     React.useEffect(() => {
-        if (inputTexture === texture && error === null) {
+        const nextTexture = inputConnectedTexture?.texture ?? inputTexture;
+
+        if (nextTexture === texture && error === null) {
             return;
         }
 
-        if (!inputTexture) {
+        if (!nextTexture) {
             if (texture !== null || error !== null) {
                 setNode(id, { texture: null, error: null });
             }
@@ -94,11 +131,13 @@ export const PreviewNode = memo(({ id }: Props) => {
             return;
         }
 
-        setNode(id, { texture: inputTexture, error: null });
-    }, [error, id, inputTexture, setNode, texture]);
+        setNode(id, { texture: nextTexture, error: null });
+    }, [error, id, inputConnectedTexture?.texture, inputTexture, setNode, texture]);
 
     React.useEffect(() => {
-        if (!texture) {
+        const animationTexture = firstConnectedTexture ?? activePreviewTexture;
+
+        if (!animationTexture) {
             setFrameIndex(0);
             return;
         }
@@ -109,7 +148,7 @@ export const PreviewNode = memo(({ id }: Props) => {
 
         const tick = (now: number) => {
             const elapsed = now - animationStart;
-            const nextFrame = Math.floor(elapsed / frameDuration) % texture.frames;
+            const nextFrame = Math.floor(elapsed / frameDuration) % animationTexture.frames;
 
             setFrameIndex(nextFrame);
             animationFrameId = window.requestAnimationFrame(tick);
@@ -120,7 +159,7 @@ export const PreviewNode = memo(({ id }: Props) => {
         return () => {
             window.cancelAnimationFrame(animationFrameId);
         };
-    }, [texture]);
+    }, [activePreviewTexture, firstConnectedTexture]);
 
     React.useEffect(() => {
         const canvas = canvasRef.current;
@@ -129,7 +168,7 @@ export const PreviewNode = memo(({ id }: Props) => {
             return;
         }
 
-        const tileSize = texture?.frameSize ?? 16;
+        const tileSize = firstConnectedTexture?.frameSize ?? activePreviewTexture?.frameSize ?? 16;
         const canvasSize = tileSize * gridSize;
 
         canvas.width = canvasSize;
@@ -164,14 +203,51 @@ export const PreviewNode = memo(({ id }: Props) => {
             }
         };
 
+        if (inputConnectedTexture && firstConnectedTexture) {
+            const frameByteLength = firstConnectedTexture.width * firstConnectedTexture.frameSize * 4;
+
+            for (let cellIndex = 0; cellIndex < gridCells; cellIndex += 1) {
+                const x = (cellIndex % gridSize) * tileSize;
+                const y = Math.floor(cellIndex / gridSize) * tileSize;
+
+                if (!cells[cellIndex]) {
+                    drawEmptyTile(x, y);
+                    continue;
+                }
+
+                const templateIndex = getConnectedTextureTemplateIndex(cells, gridSize, cellIndex);
+
+                if (templateIndex === null) {
+                    drawEmptyTile(x, y);
+                    continue;
+                }
+
+                const outputTexture = connectedOutputTextures[`outputTexture${templateIndex}`] ?? null;
+                const decodedTexture = decodedConnectedTextures[`outputTexture${templateIndex}`] ?? null;
+
+                if (!outputTexture || !decodedTexture) {
+                    drawEmptyTile(x, y);
+                    continue;
+                }
+
+                const safeFrameIndex = ((frameIndex % outputTexture.frames) + outputTexture.frames) % outputTexture.frames;
+                const frameStart = safeFrameIndex * frameByteLength;
+                const framePixels = decodedTexture.slice(frameStart, frameStart + frameByteLength);
+
+                context.putImageData(new ImageData(framePixels, outputTexture.width, outputTexture.frameSize), x, y);
+            }
+
+            return;
+        }
+
         let frameImageData: ImageData | null = null;
 
-        if (texture && decodedPixels) {
-            const frameByteLength = texture.width * texture.frameSize * 4;
-            const safeFrameIndex = ((frameIndex % texture.frames) + texture.frames) % texture.frames;
+        if (activePreviewTexture && decodedPixels) {
+            const frameByteLength = activePreviewTexture.width * activePreviewTexture.frameSize * 4;
+            const safeFrameIndex = ((frameIndex % activePreviewTexture.frames) + activePreviewTexture.frames) % activePreviewTexture.frames;
             const frameStart = safeFrameIndex * frameByteLength;
             const framePixels = decodedPixels.slice(frameStart, frameStart + frameByteLength);
-            frameImageData = new ImageData(framePixels, texture.width, texture.frameSize);
+            frameImageData = new ImageData(framePixels, activePreviewTexture.width, activePreviewTexture.frameSize);
         }
 
         const frameCanvas = document.createElement("canvas");
@@ -195,7 +271,7 @@ export const PreviewNode = memo(({ id }: Props) => {
 
             context.drawImage(frameCanvas, x, y, tileSize, tileSize);
         }
-    }, [cells, decodedPixels, frameIndex, gridCells, gridSize, texture]);
+    }, [activePreviewTexture, cells, connectedOutputTextures, decodedConnectedTextures, decodedPixels, firstConnectedTexture, frameIndex, gridCells, gridSize, inputConnectedTexture]);
 
     const toggleCell = React.useCallback((cellIndex: number) => {
         const nextCells = cells.map((isEnabled, index) => {
@@ -266,6 +342,7 @@ export const PreviewNode = memo(({ id }: Props) => {
 
                 {error && <p className="text-destructive text-xs">{error}</p>}
                 <Handle type="target" position={Position.Left} id="inputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
+                <Handle type="target" position={Position.Left} id={CONNECTED_TEXTURE_INPUT_HANDLE_ID} className="top-14! size-3! bg-indigo-500! border-indigo-300!" data-type="connectedTexture" />
             </BaseNodeContent>
         </BaseNode>
     );

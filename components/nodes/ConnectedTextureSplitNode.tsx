@@ -11,10 +11,8 @@ import {
 import { EmptyTexture, TexturePreview } from "@/components/EmptyTexture";
 import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
 import {
-    CONNECTED_TEXTURE_OUTPUT_HANDLE_ID,
-    CONNECTED_TEXTURE_OUTPUTS,
-    generateConnectedTexture,
-    getConnectedTextureMissingInputs
+    CONNECTED_TEXTURE_INPUT_HANDLE_ID,
+    CONNECTED_TEXTURE_OUTPUTS
 } from "@/lib/connected-texture";
 import { type SerializedTextureData } from "@/lib/texture";
 import useStore from "@/store/graph";
@@ -34,18 +32,7 @@ type ConnectedTextureNodeData = {
     error?: string | null;
 };
 
-type TextureNodeData = {
-    texture?: SerializedTextureData | null;
-};
-
-const CONNECTED_TEXTURE_HANDLES = [
-    { handleId: "inputTexture", key: "texture", label: "Base" },
-    { handleId: "inputSideTop", key: "side_top", label: "Side Top" },
-    { handleId: "inputInnerTopLeft", key: "crn_in_top_lt", label: "Inner TL" },
-    { handleId: "inputOuterTopLeft", key: "crn_out_top_lt", label: "Outer TL" },
-] as const;
-
-export const ConnectedTextureNode = memo(({ id }: Props) => {
+export const ConnectedTextureSplitNode = memo(({ id }: Props) => {
     const node = useNodeData(id);
     const setNode = useStore((store) => store.setNode);
     const nodes = useStore((store) => store.nodes);
@@ -63,77 +50,72 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                 return accumulator;
             }, {});
     }, [edges, id, nodes]);
+    const connectedTextureInput = inputMap[CONNECTED_TEXTURE_INPUT_HANDLE_ID] as ConnectedTextureNodeData | undefined;
     const nodeData = (node?.data as ConnectedTextureNodeData | undefined) ?? {};
-    const baseTexture = (inputMap.inputTexture as TextureNodeData | undefined)?.texture ?? null;
-    const sideTopTexture = (inputMap.inputSideTop as TextureNodeData | undefined)?.texture ?? null;
-    const innerTopLeftTexture = (inputMap.inputInnerTopLeft as TextureNodeData | undefined)?.texture ?? null;
-    const outerTopLeftTexture = (inputMap.inputOuterTopLeft as TextureNodeData | undefined)?.texture ?? null;
-    const inputs = React.useMemo(() => {
-        return {
-            texture: baseTexture,
-            side_top: sideTopTexture,
-            crn_in_top_lt: innerTopLeftTexture,
-            crn_out_top_lt: outerTopLeftTexture,
-        };
-    }, [baseTexture, innerTopLeftTexture, outerTopLeftTexture, sideTopTexture]);
     const texture = nodeData.texture ?? null;
     const outputTextures = nodeData.outputTextures ?? {};
-    const error = nodeData.error ?? null;
-    const missingInputs = getConnectedTextureMissingInputs(inputs);
 
     React.useEffect(() => {
-        if (missingInputs.length > 0) {
+        if (!connectedTextureInput) {
+            if (texture === null && nodeData.error === null && Object.keys(outputTextures).length === 0) {
+                return;
+            }
+
             setNode(id, { texture: null, outputTextures: {}, error: null });
             return;
         }
 
-        try {
-            const nextTexture = generateConnectedTexture(inputs);
-            setNode(id, { texture: nextTexture.texture, outputTextures: nextTexture.outputTextures, error: null });
-        } catch (generationError) {
-            const message = generationError instanceof Error
-                ? generationError.message
-                : "Could not generate connected textures.";
-
-            setNode(id, { texture: null, outputTextures: {}, error: message });
+        if (
+            texture === (connectedTextureInput.texture ?? null)
+            && outputTextures === (connectedTextureInput.outputTextures ?? {})
+            && nodeData.error === null
+        ) {
+            return;
         }
-    }, [id, inputs, missingInputs.length, setNode]);
+
+        setNode(id, {
+            texture: connectedTextureInput.texture ?? null,
+            outputTextures: connectedTextureInput.outputTextures ?? {},
+            error: null,
+        });
+    }, [connectedTextureInput, id, nodeData.error, outputTextures, setNode, texture]);
 
     return (
         <BaseNode className="w-72">
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Connected Texture
+                    Connected Texture Split
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-
-                        {error && <p className="text-destructive">{error}</p>}
+                    <div className="text-xs text-muted-foreground">
+                        Outputs {CONNECTED_TEXTURE_OUTPUTS.length} textures.
                     </div>
                 </div>
 
-                {CONNECTED_TEXTURE_HANDLES.map((entry) => (
-                    <div key={entry.handleId} className="relative text-xs text-secondary-foreground">
-                        <Handle
-                            type="target"
-                            position={Position.Left}
-                            id={entry.handleId}
-                            className="size-3! -left-3! bg-blue-500! border-blue-300!"
-                            data-type="texture"
-                        />
-                        {entry.label}
-                    </div>
-                ))}
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={CONNECTED_TEXTURE_INPUT_HANDLE_ID}
+                    className="top-8! size-3! bg-indigo-500! border-indigo-300!"
+                    data-type="connectedTexture"
+                />
 
-                <div className="nodrag flex max-h-80 flex-col gap-1.5 overflow-auto pr-1">
+                <div className="nodrag flex  flex-col gap-1.5  pr-1">
                     {CONNECTED_TEXTURE_OUTPUTS.map((output) => {
                         const outputTexture = outputTextures[output.handleId] ?? null;
 
                         return (
-                            <div key={output.handleId} className="flex items-center gap-1 text-[10px] text-secondary-foreground">
+                            <div key={output.handleId} className="flex items-center justify-end gap-1 pr-3 text-[10px] text-secondary-foreground">
+                                <Handle
+                                    type="source"
+                                    position={Position.Right}
+                                    id={output.handleId}
+                                    className="size-3! -right-3! bg-blue-500! border-blue-300!"
+                                    data-type="texture"
+                                />
                                 <span className="w-5 text-right tabular-nums">{output.index}</span>
                                 <Image
                                     src={`/sample/${output.index}.png`}
@@ -152,16 +134,9 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                         );
                     })}
                 </div>
-                <Handle
-                    type="source"
-                    position={Position.Right}
-                    id={CONNECTED_TEXTURE_OUTPUT_HANDLE_ID}
-                    className="top-8! size-3! bg-indigo-500! border-indigo-300!"
-                    data-type="connectedTexture"
-                />
             </BaseNodeContent>
         </BaseNode>
     );
 });
 
-ConnectedTextureNode.displayName = "ConnectedTextureNode";
+ConnectedTextureSplitNode.displayName = "ConnectedTextureSplitNode";

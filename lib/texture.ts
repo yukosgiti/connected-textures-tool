@@ -91,11 +91,23 @@ function loadImage(file: File) {
   });
 }
 
-export async function normalizeTextureFile(
-  file: File,
-): Promise<SerializedTextureData> {
-  const image = await loadImage(file);
+function loadImageFromUrl(url: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
 
+    image.onload = () => {
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      reject(new Error("Could not read the preset image."));
+    };
+
+    image.src = url;
+  });
+}
+
+function normalizeTextureImage(image: HTMLImageElement, name: string): SerializedTextureData {
   if (image.width !== SIZE) {
     throw new Error(`Texture width must be exactly ${SIZE}px.`);
   }
@@ -134,7 +146,7 @@ export async function normalizeTextureFile(
   }
 
   return {
-    name: file.name,
+    name,
     width: SIZE,
     height: SIZE * FRAMES,
     frameSize: SIZE,
@@ -142,6 +154,21 @@ export async function normalizeTextureFile(
     sourceFrames,
     pixels: encodeBase64(normalizedPixels),
   };
+}
+
+export async function normalizeTextureFile(
+  file: File,
+): Promise<SerializedTextureData> {
+  const image = await loadImage(file);
+  return normalizeTextureImage(image, file.name);
+}
+
+export async function normalizeTextureUrl(
+  url: string,
+  name: string,
+): Promise<SerializedTextureData> {
+  const image = await loadImageFromUrl(url);
+  return normalizeTextureImage(image, name);
 }
 
 
