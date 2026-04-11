@@ -75,7 +75,7 @@ export function GraphHeader({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex min-w-0 flex-col gap-1">
                         <h1 className="font-medium text-sm">Graph Header</h1>
-                        <p className="text-muted-foreground text-xs">Import, export, and load preset graph JSON files. Format version v{formatVersion} is required.</p>
+                        <p className="text-muted-foreground text-xs">Import, export, and load preset graph JSON files. Format version v{formatVersion} is required. Stick to JSON files you made yourself or got from someone you trust.</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">

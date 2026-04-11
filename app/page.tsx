@@ -1,4 +1,5 @@
 "use client"
+import { FlashingLightsWarningDialog } from "@/components/flashing-lights-warning-dialog"
 import { GraphHeader } from "@/components/graph-header"
 import {
   CONNECTED_TEXTURE_OUTPUTS,
@@ -377,6 +378,7 @@ export default function Page() {
 
   return (
     <div className="min-h-svh p-6">
+      <FlashingLightsWarningDialog />
       <div className="flex min-w-0 flex-col gap-6 text-sm leading-loose">
         <GraphHeader
           formatVersion={GRAPH_JSON_VERSION}
