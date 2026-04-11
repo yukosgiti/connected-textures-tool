@@ -2,6 +2,7 @@ import { type Edge } from "@xyflow/react";
 
 import { getInitialNodeData, NODE_TYPE_LABELS, type AppNodeType } from "@/store/nodes";
 import { type AppNode } from "@/store/types";
+import { normalizeValueNodeData, type ValueNodeData } from "@/lib/value-node";
 
 export const GRAPH_JSON_VERSION = 1;
 
@@ -14,12 +15,138 @@ export type GraphDocument = {
 
 type JsonRecord = Record<string, unknown>;
 
+const VALUE_NODE_PERSISTED_KEYS = [
+  "mode",
+  "constantValue",
+  "linearSlope",
+  "linearIntercept",
+  "sineAmplitude",
+  "sineCycles",
+  "sinePhasePi",
+  "sineOffset",
+  "randomSeed",
+  "randomMin",
+  "randomMax",
+] as const;
+
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isAppNodeType(value: unknown): value is AppNodeType {
   return typeof value === "string" && value in NODE_TYPE_LABELS;
+}
+
+function areJsonValuesEqual(left: unknown, right: unknown): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    return left.every((value, index) => areJsonValuesEqual(value, right[index]));
+  }
+
+  if (isRecord(left) && isRecord(right)) {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+
+    return leftKeys.every((key) => areJsonValuesEqual(left[key], right[key]));
+  }
+
+  return false;
+}
+
+function pickDefinedValues(source: JsonRecord, keys: readonly string[]) {
+  return keys.reduce<JsonRecord>((accumulator, key) => {
+    if (source[key] !== undefined) {
+      accumulator[key] = source[key];
+    }
+
+    return accumulator;
+  }, {});
+}
+
+function omitDefaultValues(type: AppNodeType, data: JsonRecord) {
+  const initialData = getInitialNodeData(type) as JsonRecord;
+
+  return Object.entries(data).reduce<JsonRecord>((accumulator, [key, value]) => {
+    if (!areJsonValuesEqual(value, initialData[key])) {
+      accumulator[key] = value;
+    }
+
+    return accumulator;
+  }, {});
+}
+
+function getPersistentNodeData(type: AppNodeType, data: JsonRecord) {
+  switch (type) {
+    case "value":
+      return pickDefinedValues(data, VALUE_NODE_PERSISTED_KEYS);
+    case "texture":
+      return pickDefinedValues(data, ["texture"]);
+    case "colorTexture":
+      return pickDefinedValues(data, ["color"]);
+    case "randomTexture":
+      return pickDefinedValues(data, ["mode", "seed", "fallbackRatio"]);
+    case "sineWaveTexture":
+    case "squareWaveTexture":
+      return pickDefinedValues(data, ["color", "cycles", "amplitude", "thickness", "phase"]);
+    case "connectedTexture":
+      return pickDefinedValues(data, ["debug"]);
+    case "connectedTextureSplit":
+    case "connectedTexturePack":
+    case "reverseTexture":
+    case "invertTexture":
+    case "maskTexture":
+    case "export":
+      return {};
+    case "rotateTexture":
+      return pickDefinedValues(data, ["fallbackValue"]);
+    case "translateTexture":
+    case "scaleTexture":
+      return pickDefinedValues(data, ["fallbackX", "fallbackY"]);
+    case "blurTexture":
+      return pickDefinedValues(data, ["fallbackBlur"]);
+    case "contrastTexture":
+      return pickDefinedValues(data, ["fallbackContrast"]);
+    case "speedTexture":
+      return pickDefinedValues(data, ["fallbackSpeed"]);
+    case "holdTexture":
+      return pickDefinedValues(data, ["fallbackHold"]);
+    case "phaseTexture":
+      return pickDefinedValues(data, ["fallbackFrames"]);
+    case "selectTexture":
+      return pickDefinedValues(data, ["fallbackIndex"]);
+    case "hslTexture":
+      return pickDefinedValues(data, ["fallbackHue", "fallbackSaturation", "fallbackLightness"]);
+    case "opacityTexture":
+      return pickDefinedValues(data, ["fallbackOpacity"]);
+    case "mergeTexture":
+      return pickDefinedValues(data, ["mode"]);
+    case "preview":
+      return pickDefinedValues(data, ["gridSize", "cells"]);
+  }
+}
+
+function createImportedNodeData(type: AppNodeType, data: unknown) {
+  if (type === "value") {
+    return normalizeValueNodeData(isRecord(data) ? data as Partial<ValueNodeData> : undefined);
+  }
+
+  const persistedData = isRecord(data) ? getPersistentNodeData(type, data) : {};
+
+  return {
+    ...getInitialNodeData(type),
+    ...persistedData,
+  };
 }
 
 function sanitizeGraphFileName(name: string) {
@@ -66,10 +193,7 @@ function parseNode(node: unknown, index: number): AppNode {
     id,
     type,
     position: { x: position.x, y: position.y },
-    data: {
-      ...getInitialNodeData(type),
-      ...(isRecord(data) ? data : {}),
-    },
+    data: createImportedNodeData(type, data),
   } as AppNode;
 }
 
@@ -102,6 +226,9 @@ function parseEdge(edge: unknown, index: number): Edge {
 }
 
 function sanitizeNode(node: AppNode): AppNode {
+  const rawData = isRecord(node.data) ? node.data : {};
+  const data = omitDefaultValues(node.type as AppNodeType, getPersistentNodeData(node.type as AppNodeType, rawData));
+
   return {
     id: node.id,
     type: node.type,
@@ -109,7 +236,7 @@ function sanitizeNode(node: AppNode): AppNode {
       x: node.position.x,
       y: node.position.y,
     },
-    data: node.data,
+    data,
   } as AppNode;
 }
 
