@@ -80,6 +80,23 @@ export const CONNECTED_TEXTURE_OUTPUTS = manifest.templates.map((template) => ({
   label: `${template.index}`,
   index: template.index,
 }));
+const CONNECTED_TEXTURE_LAYER_ORDER: ConnectedTextureAssetKey[] = [
+  "side_top",
+  "side_rt",
+  "side_btm",
+  "side_lt",
+  "crn_in_top_lt",
+  "crn_in_top_rt",
+  "crn_in_btm_lt",
+  "crn_in_btm_rt",
+  "crn_out_top_lt",
+  "crn_out_top_rt",
+  "crn_out_btm_lt",
+  "crn_out_btm_rt",
+];
+const CONNECTED_TEXTURE_LAYER_ORDER_INDEX = new Map(
+  CONNECTED_TEXTURE_LAYER_ORDER.map((layerKey, index) => [layerKey, index]),
+);
 const CONNECTED_TEXTURE_TEMPLATE_LOOKUP = new Map(
   manifest.templates.map((template) => [sortTemplateLayers(template.layers).join("|"), template.index]),
 );
@@ -246,10 +263,10 @@ function transformTextureFrames(
 }
 
 function sortTemplateLayers(layers: ConnectedTextureAssetKey[]) {
-  const sides = layers.filter((layerKey) => !layerKey.startsWith("crn_"));
-  const corners = layers.filter((layerKey) => layerKey.startsWith("crn_"));
-
-  return [...sides, ...corners];
+  return [...layers].sort((left, right) => {
+    return (CONNECTED_TEXTURE_LAYER_ORDER_INDEX.get(left) ?? Number.MAX_SAFE_INTEGER)
+      - (CONNECTED_TEXTURE_LAYER_ORDER_INDEX.get(right) ?? Number.MAX_SAFE_INTEGER);
+  });
 }
 
 function createConnectedTexturePreviewTexture(
