@@ -11,20 +11,21 @@ export const NODE_TYPE_LABELS = {
   connectedTextureSplit: "Connected Texture Split",
   connectedTexturePack: "Textures To Connected Texture",
   rotateTexture: "Rotate Texture",
-  translateTexture: "Translate Texture",
+  translateTexture: "Offset Texture",
   scaleTexture: "Scale Texture",
+  contrastTexture: "Adjust Contrast",
   reverseTexture: "Reverse Frames",
   speedTexture: "Frame Speed",
   holdTexture: "Hold Frames",
   phaseTexture: "Phase Frames",
   selectTexture: "Select Frame",
-  hslTexture: "HSL Texture",
-  invertTexture: "Invert Texture",
-  opacityTexture: "Opacity Texture",
-  mergeTexture: "Merge Texture",
-  maskTexture: "Mask Texture",
-  preview: "Preview",
-  export: "Export",
+  hslTexture: "Adjust HSL",
+  invertTexture: "Invert Colors",
+  opacityTexture: "Adjust Opacity",
+  mergeTexture: "Blend Textures",
+  maskTexture: "Apply Mask",
+  preview: "Preview Node",
+  export: "Export Node",
 } as const;
 
 export type AppNodeType = keyof typeof NODE_TYPE_LABELS;
@@ -72,6 +73,8 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 };
     case "scaleTexture":
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 };
+    case "contrastTexture":
+      return { texture: null, error: null, fallbackContrast: 0 };
     case "reverseTexture":
       return { texture: null, error: null };
     case "speedTexture":

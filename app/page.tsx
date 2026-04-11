@@ -1,5 +1,8 @@
 "use client";
+import { GraphHeader } from "@/components/graph-header";
 import { CONNECTED_TEXTURE_OUTPUTS, getConnectedTextureTextureInputHandleId } from "@/lib/connected-texture";
+import { createGraphDocument, downloadGraphDocument, GRAPH_JSON_VERSION, parseGraphDocument } from "@/lib/graph-json";
+import { GRAPH_PRESETS } from "@/lib/graph-presets";
 import useStore from "@/store/graph";
 import { createNode, NODE_TYPE_LABELS, type AppNodeType } from "@/store/nodes";
 import {
@@ -32,19 +35,27 @@ const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
     label: "Inputs",
     types: ["value", "texture", "colorTexture", "randomTexture"],
   },
+
   {
-    label: "Connected Textures",
-    types: ["connectedTexture", "connectedTextureSplit", "connectedTexturePack"],
-  },
-  {
-    label: "Texture Operations",
+    label: "Transform Operations",
     types: [
       "rotateTexture",
       "translateTexture",
       "scaleTexture",
+    ],
+  },
+  {
+    label: "Color Operations",
+    types: [
+      "contrastTexture",
       "hslTexture",
       "invertTexture",
       "opacityTexture",
+    ],
+  },
+  {
+    label: "Compositing",
+    types: [
       "mergeTexture",
       "maskTexture",
     ],
@@ -52,6 +63,10 @@ const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
   {
     label: "Frame Operations",
     types: ["reverseTexture", "speedTexture", "holdTexture", "phaseTexture", "selectTexture"],
+  },
+  {
+    label: "Connected Textures",
+    types: ["connectedTexture", "connectedTextureSplit", "connectedTexturePack"],
   },
 ];
 
@@ -68,6 +83,7 @@ const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
   rotateTexture: Rotate360FreeIcons,
   translateTexture: Image01FreeIcons,
   scaleTexture: Image01FreeIcons,
+  contrastTexture: Image01FreeIcons,
   reverseTexture: Image01FreeIcons,
   speedTexture: Image01FreeIcons,
   holdTexture: Image01FreeIcons,
@@ -85,6 +101,7 @@ const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
 export default function Page() {
   const [reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null);
   const [contextMenuPosition, setContextMenuPosition] = React.useState<{ x: number; y: number } | null>(null);
+  const [graphStatus, setGraphStatus] = React.useState<{ tone: "default" | "error"; message: string } | null>(null);
 
   const { nodes, edges, nodeTypes, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges } = useStore();
 
@@ -130,6 +147,67 @@ export default function Page() {
     setContextMenuPosition({ x: event.clientX, y: event.clientY });
   }, []);
 
+  const fitGraphView = React.useCallback(() => {
+    requestAnimationFrame(() => {
+      reactFlowInstance?.fitView();
+    });
+  }, [reactFlowInstance]);
+
+  const applyGraphDocument = React.useCallback((rawDocument: unknown, sourceLabel: string) => {
+    const document = parseGraphDocument(rawDocument);
+
+    setNodes(document.nodes);
+    setEdges(document.edges);
+    setGraphStatus({
+      tone: "default",
+      message: `Loaded ${document.name ?? sourceLabel} (v${document.version}).`,
+    });
+    fitGraphView();
+  }, [fitGraphView, setEdges, setNodes]);
+
+  const handleLoadPreset = React.useCallback((presetId: string) => {
+    const preset = GRAPH_PRESETS.find((entry) => entry.id === presetId);
+
+    if (!preset) {
+      setGraphStatus({ tone: "error", message: "Selected preset JSON was not found." });
+      return;
+    }
+
+    try {
+      applyGraphDocument(preset.document, preset.label);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not load the preset JSON.";
+      setGraphStatus({ tone: "error", message });
+    }
+  }, [applyGraphDocument]);
+
+  const handleImportFile = React.useCallback(async (file: File) => {
+    try {
+      const fileContent = await file.text();
+      const parsed = JSON.parse(fileContent) as unknown;
+
+      applyGraphDocument(parsed, file.name);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not import the graph JSON.";
+      setGraphStatus({ tone: "error", message });
+    }
+  }, [applyGraphDocument]);
+
+  const handleExport = React.useCallback(() => {
+    try {
+      const document = createGraphDocument(nodes, edges, "graph");
+
+      downloadGraphDocument(document);
+      setGraphStatus({
+        tone: "default",
+        message: `Exported ${document.name ?? "graph"} as v${document.version} JSON.`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not export the graph JSON.";
+      setGraphStatus({ tone: "error", message });
+    }
+  }, [edges, nodes]);
+
   const handleAddNode = React.useCallback((type: AppNodeType) => {
     if (!reactFlowInstance || !contextMenuPosition) {
       return;
@@ -167,15 +245,18 @@ export default function Page() {
   return (
     <div className="min-h-svh p-6">
       <div className="flex min-w-0 flex-col gap-6 text-sm leading-loose">
-        <div className="max-w-xl">
-          <h1 className="font-medium">Shader surface modes</h1>
-          <p>The square preview plays through the sprite sheet as an animation.</p>
-          <p>The strip preview lays out every frame into one tall image.</p>
-        </div>
+        <GraphHeader
+          formatVersion={GRAPH_JSON_VERSION}
+          presets={GRAPH_PRESETS.map(({ id, label }) => ({ id, label }))}
+          onLoadPreset={handleLoadPreset}
+          onImportFile={handleImportFile}
+          onExport={handleExport}
+          status={graphStatus}
+        />
 
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div className="h-[80vh] w-[80vw] border-2 border-red-500 bg-secondary dark:bg-background" onContextMenuCapture={onContextMenuCapture}>
+            <div className="h-[80vh] w-[80vw] border-2 border-secondary rounded-lg bg-secondary dark:bg-background" onContextMenuCapture={onContextMenuCapture}>
               <ReactFlow
                 nodes={nodes}
                 edges={edges}

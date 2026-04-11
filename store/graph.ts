@@ -8,6 +8,7 @@ import { PreviewNode } from '@/components/nodes/PreviewNode';
 import { ConnectedTextureNode } from '@/components/nodes/ConnectedTextureNode';
 import { ConnectedTexturePackNode } from '@/components/nodes/ConnectedTexturePackNode';
 import { ConnectedTextureSplitNode } from '@/components/nodes/ConnectedTextureSplitNode';
+import { ContrastTextureNode } from '@/components/nodes/ContrastTextureNode';
 import { ColorTextureNode } from '@/components/nodes/ColorTextureNode';
 import { ExportNode } from '@/components/nodes/ExportNode';
 import { HslTextureNode } from '@/components/nodes/HslTextureNode';
@@ -79,6 +80,7 @@ function getHandleDataType(nodeType: string | undefined, handleId: string | null
         || handleId.includes('inputSaturation')
         || handleId.includes('inputLightness')
         || handleId.includes('inputOpacity')
+        || handleId.includes('inputContrast')
         || handleId.includes('inputFrames')
         || handleId.includes('inputIndex')
         || handleId.includes('inputSpeed')
@@ -120,6 +122,7 @@ const useStore = create<AppState>((set, get) => ({
     rotateTexture: RotateTextureNode,
     translateTexture: TranslateTextureNode,
     scaleTexture: ScaleTextureNode,
+    contrastTexture: ContrastTextureNode,
     reverseTexture: ReverseTextureNode,
     speedTexture: SpeedTextureNode,
     holdTexture: HoldTextureNode,

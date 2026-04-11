@@ -77,7 +77,7 @@ export const MaskTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Mask Texture
+                    Apply Mask
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>

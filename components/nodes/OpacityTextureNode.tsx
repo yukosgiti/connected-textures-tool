@@ -90,7 +90,7 @@ export const OpacityTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Opacity Texture
+                    Adjust Opacity
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>

@@ -75,7 +75,7 @@ export const InvertTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Invert Texture
+                    Invert Colors
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>

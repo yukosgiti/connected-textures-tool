@@ -99,7 +99,7 @@ export const TranslateTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Translate Texture
+                    Offset Texture
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>

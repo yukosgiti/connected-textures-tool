@@ -100,14 +100,14 @@ export const MergeTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Merge Texture
+                    Blend Textures
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>
                 <div className="flex flex-col gap-3">
                     <Select value={mode} onValueChange={(value) => setNode(id, { mode: value as TextureBlendMode })}>
-                        <SelectTrigger className="nodrag w-full" aria-label="Merge mode">
-                            <SelectValue placeholder="Select merge mode" />
+                        <SelectTrigger className="nodrag w-full" aria-label="Blend mode">
+                            <SelectValue placeholder="Select blend mode" />
                         </SelectTrigger>
                         <SelectContent alignItemWithTrigger={false}>
                             <SelectGroup>
