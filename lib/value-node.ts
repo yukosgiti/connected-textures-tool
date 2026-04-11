@@ -16,8 +16,8 @@ export type ValueNodeData = {
   linearSlope: number;
   linearIntercept: number;
   sineAmplitude: number;
-  sineFrequency: number;
-  sinePhase: number;
+  sineCycles: number;
+  sinePhasePi: number;
   sineOffset: number;
   randomSeed: number;
   randomMin: number;
@@ -30,8 +30,8 @@ export const DEFAULT_VALUE_NODE_CONFIG = {
   linearSlope: 1,
   linearIntercept: 0,
   sineAmplitude: 0.5,
-  sineFrequency: 1,
-  sinePhase: 0,
+  sineCycles: 1,
+  sinePhasePi: -0.5,
   sineOffset: 0.5,
   randomSeed: 1,
   randomMin: 0,
@@ -56,6 +56,10 @@ function getFrameRatio(index: number) {
   return FRAMES <= 1 ? 0 : index / (FRAMES - 1);
 }
 
+function getLoopFrameRatio(index: number) {
+  return FRAMES <= 0 ? 0 : index / FRAMES;
+}
+
 export function generateValueFrames(config: ValueNodeConfig) {
   switch (config.mode) {
     case "constant":
@@ -67,8 +71,8 @@ export function generateValueFrames(config: ValueNodeConfig) {
       });
     case "sine":
       return new Array(FRAMES).fill(0).map((_, index) => {
-        const x = getFrameRatio(index);
-        return config.sineOffset + config.sineAmplitude * Math.sin((x * config.sineFrequency * Math.PI * 2) + config.sinePhase);
+        const x = getLoopFrameRatio(index);
+        return config.sineOffset + config.sineAmplitude * Math.sin((x * config.sineCycles * Math.PI * 2) + (config.sinePhasePi * Math.PI));
       });
     case "random": {
       const rng = createRng(config.randomSeed);
@@ -135,8 +139,22 @@ export function normalizeValueNodeData(rawData?: Partial<ValueNodeData>): ValueN
     ? inferLegacyMode(rawData.data)
     : {};
 
+  const legacySineRaw = rawData as (Partial<ValueNodeData> & {
+    sineFrequency?: number;
+    sinePhase?: number;
+  }) | undefined;
+  const legacySineOverrides = legacySineRaw && (
+    legacySineRaw.sineFrequency !== undefined || legacySineRaw.sinePhase !== undefined
+  )
+    ? {
+      sineCycles: legacySineRaw.sineCycles ?? legacySineRaw.sineFrequency ?? DEFAULT_VALUE_NODE_CONFIG.sineCycles,
+      sinePhasePi: legacySineRaw.sinePhasePi ?? ((legacySineRaw.sinePhase ?? (DEFAULT_VALUE_NODE_CONFIG.sinePhasePi * Math.PI)) / Math.PI),
+    }
+    : {};
+
   return createValueNodeData({
     ...legacyOverrides,
+    ...legacySineOverrides,
     ...rawData,
   });
 }
