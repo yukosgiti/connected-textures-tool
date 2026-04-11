@@ -14,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useNodeData } from "@/hooks/store";
+import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
 import {
     blendTextures,
     TEXTURE_BLEND_MODE_LABELS,
@@ -56,7 +56,7 @@ export const MergeTextureNode = memo(({ id }: Props) => {
                 const sourceNode = nodes.find((nodeEntry) => nodeEntry.id === edge.source);
 
                 if (sourceNode && edge.targetHandle) {
-                    accumulator[edge.targetHandle] = sourceNode.data;
+                    accumulator[edge.targetHandle] = resolveNodeOutputData(sourceNode.data, edge.sourceHandle);
                 }
 
                 return accumulator;

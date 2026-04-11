@@ -144,6 +144,7 @@ export async function normalizeTextureFile(
   };
 }
 
+
 export function textureFrameToDataUrl(
   texture: SerializedTextureData,
   frameIndex = 0,

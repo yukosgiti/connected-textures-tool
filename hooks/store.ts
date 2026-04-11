@@ -1,5 +1,28 @@
 import React from "react";
+import { type SerializedTextureData } from "@/lib/texture";
 import useStore from "@/store/graph";
+
+type TextureOutputNodeData = {
+    texture?: SerializedTextureData | null;
+    outputTextures?: Record<string, SerializedTextureData | null>;
+}
+
+export const resolveNodeOutputData = <T,>(nodeData: T, sourceHandle?: string | null): T => {
+    if (!sourceHandle || typeof nodeData !== "object" || nodeData === null) {
+        return nodeData;
+    }
+
+    const textureNodeData = nodeData as TextureOutputNodeData;
+
+    if (!textureNodeData.outputTextures) {
+        return nodeData;
+    }
+
+    return {
+        ...textureNodeData,
+        texture: textureNodeData.outputTextures[sourceHandle] ?? textureNodeData.texture ?? null,
+    } as T;
+}
 
 export const useNodeData = (id: string) => {
     const nodeData = useStore(store => store.nodes.find((node) => node.id === id));
@@ -13,7 +36,7 @@ export const useNodeInputs = (id: string) => {
         .filter((edge) => edge.target === id)
         .map((edge) => {
             const sourceNode = nodes.find((node) => node.id === edge.source);
-            return sourceNode ? sourceNode.data : null;
+            return sourceNode ? resolveNodeOutputData(sourceNode.data, edge.sourceHandle) : null;
         })
         .filter((data) => data !== null), [edges, id, nodes]);
     return inputs;

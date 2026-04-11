@@ -6,7 +6,7 @@ import {
     BaseNodeHeader,
     BaseNodeHeaderTitle
 } from "@/components/base-node";
-import { useNodeData } from "@/hooks/store";
+import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
 import { adjustOpacityTexture, type SerializedTextureData } from "@/lib/texture";
 import { createConstantValueFrames } from "@/lib/utils";
 import useStore from "@/store/graph";
@@ -47,7 +47,7 @@ export const OpacityTextureNode = memo(({ id }: Props) => {
                 const sourceNode = nodes.find((nodeEntry) => nodeEntry.id === edge.source);
 
                 if (sourceNode && edge.targetHandle) {
-                    accumulator[edge.targetHandle] = sourceNode.data;
+                    accumulator[edge.targetHandle] = resolveNodeOutputData(sourceNode.data, edge.sourceHandle);
                 }
 
                 return accumulator;
