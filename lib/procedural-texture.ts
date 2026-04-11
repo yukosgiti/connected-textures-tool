@@ -24,6 +24,24 @@ export type WaveTextureConfig = {
   phase: readonly number[]
 }
 
+export type LinearGradientTextureConfig = {
+  startColor: string
+  endColor: string
+  angle: readonly number[]
+}
+
+export type CheckerboardTextureConfig = {
+  colorA: string
+  colorB: string
+  scale: readonly number[]
+}
+
+export type RadialGradientTextureConfig = {
+  innerColor: string
+  outerColor: string
+  radius: readonly number[]
+}
+
 const HEX_COLOR_REGEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
 const TAU = Math.PI * 2
 
@@ -101,6 +119,10 @@ export function normalizeHexColor(value: string) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
+}
+
+function lerpChannel(start: number, end: number, amount: number) {
+  return Math.round(start + (end - start) * amount)
 }
 
 function createTextureFromFrame(name: string, framePixels: Uint8ClampedArray) {
@@ -447,4 +469,212 @@ export function createRandomTexture(
     pixels,
     FRAMES
   )
+}
+
+function renderLinearGradientFrame(
+  startColor: ReturnType<typeof parseHexColor>,
+  endColor: ReturnType<typeof parseHexColor>,
+  angleTurns: number
+) {
+  const radians = angleTurns * TAU
+  const directionX = Math.cos(radians)
+  const directionY = Math.sin(radians)
+  const framePixels = new Uint8ClampedArray(SIZE * SIZE * 4)
+  const center = (SIZE - 1) / 2
+  const maxDistance = Math.max(center, 1)
+
+  for (let y = 0; y < SIZE; y += 1) {
+    for (let x = 0; x < SIZE; x += 1) {
+      const normalizedX = (x - center) / maxDistance
+      const normalizedY = (y - center) / maxDistance
+      const amount = clamp(
+        (normalizedX * directionX + normalizedY * directionY + 1) / 2,
+        0,
+        1
+      )
+      const pixelIndex = (y * SIZE + x) * 4
+
+      framePixels[pixelIndex] = lerpChannel(
+        startColor.red,
+        endColor.red,
+        amount
+      )
+      framePixels[pixelIndex + 1] = lerpChannel(
+        startColor.green,
+        endColor.green,
+        amount
+      )
+      framePixels[pixelIndex + 2] = lerpChannel(
+        startColor.blue,
+        endColor.blue,
+        amount
+      )
+      framePixels[pixelIndex + 3] = 255
+    }
+  }
+
+  return framePixels
+}
+
+export function createLinearGradientTexture(
+  config: LinearGradientTextureConfig
+) {
+  const startColor = parseHexColor(config.startColor)
+  const endColor = parseHexColor(config.endColor)
+  const isAnimated = hasAnimatedValues(config.angle)
+
+  if (!isAnimated) {
+    return createTextureFromFrame(
+      "Linear Gradient Texture",
+      renderLinearGradientFrame(
+        startColor,
+        endColor,
+        getFrameValue(config.angle, 0, 0)
+      )
+    )
+  }
+
+  const frameByteLength = SIZE * SIZE * 4
+  const pixels = new Uint8ClampedArray(frameByteLength * FRAMES)
+
+  for (let frameIndex = 0; frameIndex < FRAMES; frameIndex += 1) {
+    pixels.set(
+      renderLinearGradientFrame(
+        startColor,
+        endColor,
+        getFrameValue(config.angle, frameIndex, 0)
+      ),
+      frameIndex * frameByteLength
+    )
+  }
+
+  return createSerializedTexture("Linear Gradient Texture", pixels, FRAMES)
+}
+
+function renderCheckerboardFrame(
+  colorA: ReturnType<typeof parseHexColor>,
+  colorB: ReturnType<typeof parseHexColor>,
+  scale: number
+) {
+  const safeScale = clamp(scale, 1, 8)
+  const cellSize = SIZE / safeScale
+  const framePixels = new Uint8ClampedArray(SIZE * SIZE * 4)
+
+  for (let y = 0; y < SIZE; y += 1) {
+    for (let x = 0; x < SIZE; x += 1) {
+      const useFirstColor =
+        (Math.floor(x / cellSize) + Math.floor(y / cellSize)) % 2 === 0
+      const color = useFirstColor ? colorA : colorB
+      const pixelIndex = (y * SIZE + x) * 4
+
+      framePixels[pixelIndex] = color.red
+      framePixels[pixelIndex + 1] = color.green
+      framePixels[pixelIndex + 2] = color.blue
+      framePixels[pixelIndex + 3] = 255
+    }
+  }
+
+  return framePixels
+}
+
+export function createCheckerboardTexture(config: CheckerboardTextureConfig) {
+  const colorA = parseHexColor(config.colorA)
+  const colorB = parseHexColor(config.colorB)
+  const isAnimated = hasAnimatedValues(config.scale)
+
+  if (!isAnimated) {
+    return createTextureFromFrame(
+      "Checkerboard Texture",
+      renderCheckerboardFrame(colorA, colorB, getFrameValue(config.scale, 0, 4))
+    )
+  }
+
+  const frameByteLength = SIZE * SIZE * 4
+  const pixels = new Uint8ClampedArray(frameByteLength * FRAMES)
+
+  for (let frameIndex = 0; frameIndex < FRAMES; frameIndex += 1) {
+    pixels.set(
+      renderCheckerboardFrame(
+        colorA,
+        colorB,
+        getFrameValue(config.scale, frameIndex, 4)
+      ),
+      frameIndex * frameByteLength
+    )
+  }
+
+  return createSerializedTexture("Checkerboard Texture", pixels, FRAMES)
+}
+
+function renderRadialGradientFrame(
+  innerColor: ReturnType<typeof parseHexColor>,
+  outerColor: ReturnType<typeof parseHexColor>,
+  radius: number
+) {
+  const safeRadius = clamp(radius, 0.05, 1)
+  const framePixels = new Uint8ClampedArray(SIZE * SIZE * 4)
+  const center = (SIZE - 1) / 2
+  const maxDistance = Math.max(center * safeRadius, 0.0001)
+
+  for (let y = 0; y < SIZE; y += 1) {
+    for (let x = 0; x < SIZE; x += 1) {
+      const distance = Math.hypot(x - center, y - center)
+      const amount = clamp(distance / maxDistance, 0, 1)
+      const pixelIndex = (y * SIZE + x) * 4
+
+      framePixels[pixelIndex] = lerpChannel(
+        innerColor.red,
+        outerColor.red,
+        amount
+      )
+      framePixels[pixelIndex + 1] = lerpChannel(
+        innerColor.green,
+        outerColor.green,
+        amount
+      )
+      framePixels[pixelIndex + 2] = lerpChannel(
+        innerColor.blue,
+        outerColor.blue,
+        amount
+      )
+      framePixels[pixelIndex + 3] = 255
+    }
+  }
+
+  return framePixels
+}
+
+export function createRadialGradientTexture(
+  config: RadialGradientTextureConfig
+) {
+  const innerColor = parseHexColor(config.innerColor)
+  const outerColor = parseHexColor(config.outerColor)
+  const isAnimated = hasAnimatedValues(config.radius)
+
+  if (!isAnimated) {
+    return createTextureFromFrame(
+      "Radial Gradient Texture",
+      renderRadialGradientFrame(
+        innerColor,
+        outerColor,
+        getFrameValue(config.radius, 0, 1)
+      )
+    )
+  }
+
+  const frameByteLength = SIZE * SIZE * 4
+  const pixels = new Uint8ClampedArray(frameByteLength * FRAMES)
+
+  for (let frameIndex = 0; frameIndex < FRAMES; frameIndex += 1) {
+    pixels.set(
+      renderRadialGradientFrame(
+        innerColor,
+        outerColor,
+        getFrameValue(config.radius, frameIndex, 1)
+      ),
+      frameIndex * frameByteLength
+    )
+  }
+
+  return createSerializedTexture("Radial Gradient Texture", pixels, FRAMES)
 }

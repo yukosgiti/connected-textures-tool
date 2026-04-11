@@ -7,26 +7,42 @@ export const NODE_TYPE_LABELS = {
   texture: "Texture",
   colorTexture: "Color Texture",
   randomTexture: "Random Texture",
+  gradientTexture: "Gradient Texture",
+  checkerboardTexture: "Checkerboard Texture",
+  radialGradientTexture: "Radial Gradient Texture",
   sineWaveTexture: "Sine Wave Texture",
   squareWaveTexture: "Square Wave Texture",
   connectedTexture: "Connected Texture",
   connectedTextureSplit: "Connected Texture Split",
   connectedTexturePack: "Textures To Connected Texture",
   rotateTexture: "Rotate Texture",
+  skewTexture: "Skew Texture",
+  flipTexture: "Flip Texture",
   translateTexture: "Offset Texture",
   scaleTexture: "Scale Texture",
+  cropTexture: "Crop Texture",
+  tileTexture: "Tile Texture",
   blurTexture: "Apply Blur",
   contrastTexture: "Adjust Contrast",
+  thresholdTexture: "Threshold",
+  brightnessTexture: "Brightness",
+  levelsTexture: "Levels",
+  grayscaleTexture: "Grayscale",
   reverseTexture: "Reverse Frames",
   speedTexture: "Frame Speed",
   holdTexture: "Hold Frames",
   phaseTexture: "Phase Frames",
   selectTexture: "Select Frame",
+  pingPongTexture: "Ping-Pong Frames",
+  trimTexture: "Trim Frames",
+  frameBlendTexture: "Frame Blend",
   hslTexture: "Adjust HSL",
   invertTexture: "Invert Colors",
   opacityTexture: "Adjust Opacity",
   mergeTexture: "Blend Textures",
   maskTexture: "Apply Mask",
+  channelSplitTexture: "Channel Split",
+  channelCombineTexture: "Channel Combine",
   preview: "Preview Node",
   export: "Export Node",
 } as const
@@ -67,6 +83,30 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, error: null, color: "#3b82f6" }
     case "randomTexture":
       return { texture: null, error: null, mode: "grayscale", fallbackRatio: 1 }
+    case "gradientTexture":
+      return {
+        texture: null,
+        error: null,
+        startColor: "#0ea5e9",
+        endColor: "#f97316",
+        angle: 0,
+      }
+    case "checkerboardTexture":
+      return {
+        texture: null,
+        error: null,
+        colorA: "#111827",
+        colorB: "#f8fafc",
+        scale: 4,
+      }
+    case "radialGradientTexture":
+      return {
+        texture: null,
+        error: null,
+        innerColor: "#f8fafc",
+        outerColor: "#0f172a",
+        radius: 1,
+      }
     case "sineWaveTexture":
       return {
         texture: null,
@@ -95,14 +135,49 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, outputTextures: {}, error: null }
     case "rotateTexture":
       return { texture: null, error: null, fallbackValue: 0 }
+    case "skewTexture":
+      return { texture: null, error: null, fallbackX: 0, fallbackY: 0 }
+    case "flipTexture":
+      return { texture: null, error: null, mode: "horizontal" }
     case "translateTexture":
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 }
     case "scaleTexture":
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 }
+    case "cropTexture":
+      return {
+        texture: null,
+        error: null,
+        fallbackX: 0,
+        fallbackY: 0,
+        fallbackWidth: 1,
+        fallbackHeight: 1,
+      }
+    case "tileTexture":
+      return {
+        texture: null,
+        error: null,
+        mode: "repeat",
+        fallbackRepeatX: 1,
+        fallbackRepeatY: 1,
+      }
     case "blurTexture":
       return { texture: null, error: null, fallbackBlur: 0 }
     case "contrastTexture":
       return { texture: null, error: null, fallbackContrast: 0 }
+    case "thresholdTexture":
+      return { texture: null, error: null, fallbackThreshold: 0.5 }
+    case "brightnessTexture":
+      return { texture: null, error: null, fallbackBrightness: 0 }
+    case "levelsTexture":
+      return {
+        texture: null,
+        error: null,
+        fallbackBlack: 0,
+        fallbackWhite: 1,
+        fallbackGamma: 1,
+      }
+    case "grayscaleTexture":
+      return { texture: null, error: null }
     case "reverseTexture":
       return { texture: null, error: null }
     case "speedTexture":
@@ -113,6 +188,17 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, error: null, fallbackFrames: 0 }
     case "selectTexture":
       return { texture: null, error: null, fallbackIndex: 0 }
+    case "pingPongTexture":
+      return { texture: null, error: null }
+    case "trimTexture":
+      return {
+        texture: null,
+        error: null,
+        fallbackStart: 0,
+        fallbackLength: 60,
+      }
+    case "frameBlendTexture":
+      return { texture: null, error: null, fallbackBlend: 0.5 }
     case "hslTexture":
       return {
         texture: null,
@@ -128,6 +214,10 @@ export function getInitialNodeData(type: AppNodeType) {
     case "mergeTexture":
       return { texture: null, error: null, mode: "normal" }
     case "maskTexture":
+      return { texture: null, error: null }
+    case "channelSplitTexture":
+      return { texture: null, outputTextures: {}, error: null }
+    case "channelCombineTexture":
       return { texture: null, error: null }
     case "preview":
       return {

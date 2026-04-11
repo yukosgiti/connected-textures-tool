@@ -8,23 +8,39 @@ import { ConnectedTextureNode } from "@/components/nodes/ConnectedTextureNode"
 import { ConnectedTexturePackNode } from "@/components/nodes/ConnectedTexturePackNode"
 import { ConnectedTextureSplitNode } from "@/components/nodes/ConnectedTextureSplitNode"
 import { BlurTextureNode } from "@/components/nodes/BlurTextureNode"
+import { BrightnessTextureNode } from "@/components/nodes/BrightnessTextureNode"
+import { ChannelCombineTextureNode } from "@/components/nodes/ChannelCombineTextureNode"
+import { ChannelSplitTextureNode } from "@/components/nodes/ChannelSplitTextureNode"
+import { CheckerboardTextureNode } from "@/components/nodes/CheckerboardTextureNode"
 import { ContrastTextureNode } from "@/components/nodes/ContrastTextureNode"
 import { ColorTextureNode } from "@/components/nodes/ColorTextureNode"
+import { CropTextureNode } from "@/components/nodes/CropTextureNode"
 import { ExportNode } from "@/components/nodes/ExportNode"
+import { FlipTextureNode } from "@/components/nodes/FlipTextureNode"
+import { FrameBlendTextureNode } from "@/components/nodes/FrameBlendTextureNode"
+import { GradientTextureNode } from "@/components/nodes/GradientTextureNode"
+import { GrayscaleTextureNode } from "@/components/nodes/GrayscaleTextureNode"
 import { HslTextureNode } from "@/components/nodes/HslTextureNode"
 import { InvertTextureNode } from "@/components/nodes/InvertTextureNode"
+import { LevelsTextureNode } from "@/components/nodes/LevelsTextureNode"
 import { MaskTextureNode } from "@/components/nodes/MaskTextureNode"
 import { MergeTextureNode } from "@/components/nodes/MergeTextureNode"
 import { OpacityTextureNode } from "@/components/nodes/OpacityTextureNode"
 import { PhaseTextureNode } from "@/components/nodes/PhaseTextureNode"
+import { PingPongTextureNode } from "@/components/nodes/PingPongTextureNode"
 import { RandomTextureNode } from "@/components/nodes/RandomTextureNode"
+import { RadialGradientTextureNode } from "@/components/nodes/RadialGradientTextureNode"
 import { ReverseTextureNode } from "@/components/nodes/ReverseTextureNode"
 import { ScaleTextureNode } from "@/components/nodes/ScaleTextureNode"
 import { SelectTextureNode } from "@/components/nodes/SelectTextureNode"
+import { SkewTextureNode } from "@/components/nodes/SkewTextureNode"
 import { SineWaveTextureNode } from "@/components/nodes/SineWaveTextureNode"
 import { SpeedTextureNode } from "@/components/nodes/SpeedTextureNode"
 import { SquareWaveTextureNode } from "@/components/nodes/SquareWaveTextureNode"
+import { ThresholdTextureNode } from "@/components/nodes/ThresholdTextureNode"
 import { TranslateTextureNode } from "@/components/nodes/TranslateTextureNode"
+import { TileTextureNode } from "@/components/nodes/TileTextureNode"
+import { TrimTextureNode } from "@/components/nodes/TrimTextureNode"
 import { ValueNode } from "@/components/nodes/ValueNode"
 import { TextureNode } from "@/components/nodes/TextureNode"
 import { RotateTextureNode } from "@/components/nodes/RotateTextureNode"
@@ -50,6 +66,24 @@ function getHandleDataType(
       }
 
       return handleId === "inputRatio" ? "value" : null
+    case "gradientTexture":
+      if (direction === "source") {
+        return "texture"
+      }
+
+      return handleId === "inputAngle" ? "value" : null
+    case "checkerboardTexture":
+      if (direction === "source") {
+        return "texture"
+      }
+
+      return handleId === "inputScale" ? "value" : null
+    case "radialGradientTexture":
+      if (direction === "source") {
+        return "texture"
+      }
+
+      return handleId === "inputRadius" ? "value" : null
     case "sineWaveTexture":
     case "squareWaveTexture":
       if (direction === "source") {
@@ -113,7 +147,21 @@ function getHandleDataType(
         handleId.includes("inputFrames") ||
         handleId.includes("inputIndex") ||
         handleId.includes("inputSpeed") ||
-        handleId.includes("inputHold")
+        handleId.includes("inputHold") ||
+        handleId.includes("inputWidth") ||
+        handleId.includes("inputHeight") ||
+        handleId.includes("inputRepeat") ||
+        handleId.includes("inputThreshold") ||
+        handleId.includes("inputBrightness") ||
+        handleId.includes("inputBlack") ||
+        handleId.includes("inputWhite") ||
+        handleId.includes("inputGamma") ||
+        handleId.includes("inputAngle") ||
+        handleId.includes("inputRadius") ||
+        handleId.includes("inputScale") ||
+        handleId.includes("inputStart") ||
+        handleId.includes("inputLength") ||
+        handleId.includes("inputBlendAmount")
         ? "value"
         : "texture"
   }
@@ -156,26 +204,42 @@ const useStore = create<AppState>((set, get) => ({
     texture: TextureNode,
     colorTexture: ColorTextureNode,
     randomTexture: RandomTextureNode,
+    gradientTexture: GradientTextureNode,
+    checkerboardTexture: CheckerboardTextureNode,
+    radialGradientTexture: RadialGradientTextureNode,
     sineWaveTexture: SineWaveTextureNode,
     squareWaveTexture: SquareWaveTextureNode,
     connectedTexture: ConnectedTextureNode,
     connectedTextureSplit: ConnectedTextureSplitNode,
     connectedTexturePack: ConnectedTexturePackNode,
     rotateTexture: RotateTextureNode,
+    skewTexture: SkewTextureNode,
+    flipTexture: FlipTextureNode,
     translateTexture: TranslateTextureNode,
     scaleTexture: ScaleTextureNode,
+    cropTexture: CropTextureNode,
+    tileTexture: TileTextureNode,
     blurTexture: BlurTextureNode,
     contrastTexture: ContrastTextureNode,
+    thresholdTexture: ThresholdTextureNode,
+    brightnessTexture: BrightnessTextureNode,
+    levelsTexture: LevelsTextureNode,
+    grayscaleTexture: GrayscaleTextureNode,
     reverseTexture: ReverseTextureNode,
     speedTexture: SpeedTextureNode,
     holdTexture: HoldTextureNode,
     phaseTexture: PhaseTextureNode,
     selectTexture: SelectTextureNode,
+    pingPongTexture: PingPongTextureNode,
+    trimTexture: TrimTextureNode,
+    frameBlendTexture: FrameBlendTextureNode,
     hslTexture: HslTextureNode,
     invertTexture: InvertTextureNode,
     opacityTexture: OpacityTextureNode,
     mergeTexture: MergeTextureNode,
     maskTexture: MaskTextureNode,
+    channelSplitTexture: ChannelSplitTextureNode,
+    channelCombineTexture: ChannelCombineTextureNode,
     preview: PreviewNode,
     export: ExportNode,
   },
