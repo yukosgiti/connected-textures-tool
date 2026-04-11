@@ -47,19 +47,19 @@ export function getInitialNodeData(type: AppNodeType) {
     case "texture":
       return { texture: null, error: null };
     case "rotateTexture":
-      return { texture: null, error: null };
+      return { texture: null, error: null, fallbackValue: 0 };
     case "translateTexture":
-      return { texture: null, error: null };
+      return { texture: null, error: null, fallbackX: 0, fallbackY: 0 };
     case "scaleTexture":
-      return { texture: null, error: null };
+      return { texture: null, error: null, fallbackX: 0, fallbackY: 0 };
     case "phaseTexture":
-      return { texture: null, error: null };
+      return { texture: null, error: null, fallbackFrames: 0 };
     case "hslTexture":
-      return { texture: null, error: null };
+      return { texture: null, error: null, fallbackHue: 0, fallbackSaturation: 0, fallbackLightness: 0 };
     case "invertTexture":
       return { texture: null, error: null };
     case "opacityTexture":
-      return { texture: null, error: null };
+      return { texture: null, error: null, fallbackOpacity: 1 };
     case "mergeTexture":
       return { texture: null, error: null, mode: "normal" };
     case "maskTexture":

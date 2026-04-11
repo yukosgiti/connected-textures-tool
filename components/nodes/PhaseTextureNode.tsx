@@ -8,13 +8,14 @@ import {
 } from "@/components/base-node";
 import { useNodeData, useNodeInputs } from "@/hooks/store";
 import { phaseTexture, type SerializedTextureData } from "@/lib/texture";
-import { ZERO_VALUE_FRAMES } from "@/lib/utils";
+import { createConstantValueFrames } from "@/lib/utils";
 import useStore from "@/store/graph";
 import { Image01FreeIcons } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Handle, Position } from "@xyflow/react";
 import React from "react";
 import { EmptyTexture, TexturePreview } from "../EmptyTexture";
+import { ValueFallbackSlider } from "./ValueFallbackSlider";
 
 type Props = {
     id: string;
@@ -31,12 +32,14 @@ type ValueNodeData = {
 type PhaseTextureNodeData = {
     texture?: SerializedTextureData | null;
     error?: string | null;
+    fallbackFrames?: number;
 }
 
 export const PhaseTextureNode = memo(({ id }: Props) => {
     const node = useNodeData(id);
     const inputData = useNodeInputs(id);
     const setNode = useStore((store) => store.setNode);
+    const edges = useStore((store) => store.edges);
     const textureInput = inputData.find((input) => {
         return Boolean((input as TextureNodeData).texture);
     }) as TextureNodeData | undefined;
@@ -44,11 +47,17 @@ export const PhaseTextureNode = memo(({ id }: Props) => {
         return Array.isArray((input as ValueNodeData).data);
     }) as ValueNodeData | undefined;
     const inputTexture = textureInput?.texture ?? null;
-    const frameOffsets = valueInput?.data ?? ZERO_VALUE_FRAMES;
-    const valueFrames = frameOffsets.length;
     const nodeData = (node?.data as PhaseTextureNodeData | undefined) ?? {};
     const texture = nodeData.texture ?? null;
     const error = nodeData.error ?? null;
+    const fallbackFrames = nodeData.fallbackFrames ?? 0;
+    const hasValueInput = React.useMemo(() => {
+        return edges.some((edge) => edge.target === id && edge.targetHandle === "inputValue");
+    }, [edges, id]);
+    const frameOffsets = React.useMemo(() => {
+        return valueInput?.data ?? createConstantValueFrames(fallbackFrames);
+    }, [fallbackFrames, valueInput?.data]);
+    const valueFrames = frameOffsets.length;
 
     React.useEffect(() => {
         if (!inputTexture) {
@@ -81,10 +90,24 @@ export const PhaseTextureNode = memo(({ id }: Props) => {
                 <div className="flex flex-col gap-4">
                     {texture ? <TexturePreview texture={texture} /> : <EmptyTexture />}
                     {error && <p className="text-destructive text-xs">{error}</p>}
-                </div>
-                <div className="relative text-xs text-secondary-foreground">
-                    <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! bg-orange-500! border-orange-300!" data-type="value" />
-                    Frames
+                    {hasValueInput ? (
+                        <div className="relative text-xs text-secondary-foreground">
+                            <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! bg-orange-500! border-orange-300!" data-type="value" />
+                            Frames
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! top-1/2! -translate-y-1/2 bg-orange-500! border-orange-300!" data-type="value" />
+                            <ValueFallbackSlider
+                                label="Frames"
+                                value={fallbackFrames}
+                                min={0}
+                                max={59}
+                                step={1}
+                                onChange={(value) => setNode(id, { fallbackFrames: value })}
+                            />
+                        </div>
+                    )}
                 </div>
                 <Handle type="target" position={Position.Left} id="inputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
                 <Handle type="source" position={Position.Right} id="outputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
