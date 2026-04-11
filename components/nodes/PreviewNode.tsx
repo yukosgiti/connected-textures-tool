@@ -6,15 +6,17 @@ import {
     BaseNodeHeader,
     BaseNodeHeaderTitle
 } from "@/components/base-node";
+import { Button } from "@/components/ui/button";
 import { useNodeData, useNodeInputs } from "@/hooks/store";
 import { decodeTexturePixels, type SerializedTextureData } from "@/lib/texture";
 import { FRAMES } from "@/lib/utils";
 import useStore from "@/store/graph";
-import { createDefaultPreviewCells } from "@/store/nodes";
+import { createDefaultPreviewCells, DEFAULT_PREVIEW_GRID_SIZE } from "@/store/nodes";
 import { ViewIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Handle, Position } from "@xyflow/react";
 import React from "react";
+import { ButtonGroup } from "../ui/button-group";
 
 type Props = {
     id: string;
@@ -26,13 +28,12 @@ type TextureNodeData = {
 
 type PreviewNodeData = {
     texture?: SerializedTextureData | null;
+    gridSize?: number;
     cells?: boolean[];
     error?: string | null;
 }
 
-const GRID_SIZE = 8;
-const GRID_CELLS = GRID_SIZE * GRID_SIZE;
-const DEFAULT_PREVIEW_CELLS = Object.freeze(createDefaultPreviewCells()) as readonly boolean[];
+const PREVIEW_GRID_OPTIONS = [3, 4, 8] as const;
 const CHECKER_DARK = "#333333";
 const CHECKER_LIGHT = "rgba(0, 0, 0, 0)";
 
@@ -47,15 +48,22 @@ export const PreviewNode = memo(({ id }: Props) => {
     const texture = nodeData.texture ?? null;
     const inputTexture = textureInput?.texture ?? null;
     const error = nodeData.error ?? null;
+    const gridSize = PREVIEW_GRID_OPTIONS.includes(nodeData.gridSize as (typeof PREVIEW_GRID_OPTIONS)[number])
+        ? nodeData.gridSize as (typeof PREVIEW_GRID_OPTIONS)[number]
+        : DEFAULT_PREVIEW_GRID_SIZE;
+    const gridCells = gridSize * gridSize;
+    const defaultPreviewCells = React.useMemo(() => {
+        return createDefaultPreviewCells(gridSize);
+    }, [gridSize]);
     const cells = React.useMemo(() => {
-        const nextCells = Array.from(DEFAULT_PREVIEW_CELLS);
+        const nextCells = Array.from(defaultPreviewCells);
 
-        for (let index = 0; index < GRID_CELLS; index += 1) {
+        for (let index = 0; index < gridCells; index += 1) {
             nextCells[index] = nodeData.cells?.[index] ?? nextCells[index];
         }
 
         return nextCells;
-    }, [nodeData.cells]);
+    }, [defaultPreviewCells, gridCells, nodeData.cells]);
     const decodedPixels = React.useMemo(() => {
         return texture ? decodeTexturePixels(texture) : null;
     }, [texture]);
@@ -63,12 +71,15 @@ export const PreviewNode = memo(({ id }: Props) => {
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
     React.useEffect(() => {
-        if (nodeData.cells?.length === GRID_CELLS) {
+        if (nodeData.gridSize === gridSize && nodeData.cells?.length === gridCells) {
             return;
         }
 
-        setNode(id, { cells: Array.from(DEFAULT_PREVIEW_CELLS) });
-    }, [id, nodeData.cells, setNode]);
+        setNode(id, {
+            gridSize,
+            cells: Array.from(defaultPreviewCells),
+        });
+    }, [defaultPreviewCells, gridCells, gridSize, id, nodeData.cells, nodeData.gridSize, setNode]);
 
     React.useEffect(() => {
         if (inputTexture === texture && error === null) {
@@ -119,7 +130,7 @@ export const PreviewNode = memo(({ id }: Props) => {
         }
 
         const tileSize = texture?.frameSize ?? 16;
-        const canvasSize = tileSize * GRID_SIZE;
+        const canvasSize = tileSize * gridSize;
 
         canvas.width = canvasSize;
         canvas.height = canvasSize;
@@ -173,9 +184,9 @@ export const PreviewNode = memo(({ id }: Props) => {
             frameContext.putImageData(frameImageData, 0, 0);
         }
 
-        for (let cellIndex = 0; cellIndex < GRID_CELLS; cellIndex += 1) {
-            const x = (cellIndex % GRID_SIZE) * tileSize;
-            const y = Math.floor(cellIndex / GRID_SIZE) * tileSize;
+        for (let cellIndex = 0; cellIndex < gridCells; cellIndex += 1) {
+            const x = (cellIndex % gridSize) * tileSize;
+            const y = Math.floor(cellIndex / gridSize) * tileSize;
 
             if (!cells[cellIndex] || !frameContext || !frameImageData) {
                 drawEmptyTile(x, y);
@@ -184,7 +195,7 @@ export const PreviewNode = memo(({ id }: Props) => {
 
             context.drawImage(frameCanvas, x, y, tileSize, tileSize);
         }
-    }, [cells, decodedPixels, frameIndex, texture]);
+    }, [cells, decodedPixels, frameIndex, gridCells, gridSize, texture]);
 
     const toggleCell = React.useCallback((cellIndex: number) => {
         const nextCells = cells.map((isEnabled, index) => {
@@ -206,13 +217,20 @@ export const PreviewNode = memo(({ id }: Props) => {
         const scaleY = canvas.height / rect.height;
         const pixelX = (event.clientX - rect.left) * scaleX;
         const pixelY = (event.clientY - rect.top) * scaleY;
-        const tileSize = canvas.width / GRID_SIZE;
-        const column = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(pixelX / tileSize)));
-        const row = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(pixelY / tileSize)));
-        const cellIndex = row * GRID_SIZE + column;
+        const tileSize = canvas.width / gridSize;
+        const column = Math.max(0, Math.min(gridSize - 1, Math.floor(pixelX / tileSize)));
+        const row = Math.max(0, Math.min(gridSize - 1, Math.floor(pixelY / tileSize)));
+        const cellIndex = row * gridSize + column;
 
         toggleCell(cellIndex);
-    }, [toggleCell]);
+    }, [gridSize, toggleCell]);
+
+    const setGridSize = React.useCallback((nextGridSize: typeof PREVIEW_GRID_OPTIONS[number]) => {
+        setNode(id, {
+            gridSize: nextGridSize,
+            cells: createDefaultPreviewCells(nextGridSize),
+        });
+    }, [id, setNode]);
 
     return (
         <BaseNode className="w-104">
@@ -221,6 +239,19 @@ export const PreviewNode = memo(({ id }: Props) => {
                     <HugeiconsIcon icon={ViewIcon} />
                     Preview
                 </BaseNodeHeaderTitle>
+                <ButtonGroup>
+                    {PREVIEW_GRID_OPTIONS.map((option, index) => (
+                        <Button
+                            key={option}
+                            size="xs"
+                            variant={gridSize === option ? "default" : "outline"}
+                            onClick={() => setGridSize(option)}
+                            className="nodrag px-1.5 text-[10px]"
+                        >
+                            {option}x{option}
+                        </Button>
+                    ))}
+                </ButtonGroup>
             </BaseNodeHeader>
             <BaseNodeContent>
                 <div className="nodrag overflow-hidden rounded-md border border-border bg-secondary/40 p-1">
@@ -232,12 +263,7 @@ export const PreviewNode = memo(({ id }: Props) => {
                         style={{ imageRendering: "pixelated" }}
                     />
                 </div>
-                <p className="text-muted-foreground text-xs">
-                    {texture ? `${texture.name} · ${GRID_SIZE}x${GRID_SIZE} grid` : "Connect a texture input"}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                    {cells.filter(Boolean).length} of {GRID_CELLS} tiles enabled
-                </p>
+
                 {error && <p className="text-destructive text-xs">{error}</p>}
                 <Handle type="target" position={Position.Left} id="inputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
             </BaseNodeContent>

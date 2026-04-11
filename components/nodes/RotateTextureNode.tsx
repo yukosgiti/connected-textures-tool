@@ -50,7 +50,6 @@ export const RotateTextureNode = memo(({ id }: Props) => {
         return Array.isArray((input as ValueNodeData).data);
     }) as ValueNodeData | undefined;
     const inputTexture = textureInput?.texture ?? null;
-    const hasValueInput = Array.isArray(valueInput?.data);
     const rotationValues = valueInput?.data ?? ZERO_VALUE_FRAMES;
     const valueFrames = rotationValues.length;
     const nodeData = (node?.data as RotateTextureNodeData | undefined) ?? {};
@@ -87,16 +86,13 @@ export const RotateTextureNode = memo(({ id }: Props) => {
             <BaseNodeContent >
                 <div className="flex flex-col gap-4">
                     {texture ? <TexturePreview texture={texture} /> : <EmptyTexture />}
-                    <p className="text-muted-foreground text-xs">
-                        {texture ? `${texture.name} · ${texture.frames} frames` : "Connect both inputs"}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                        {hasValueInput ? `Rotation input: ${valueFrames} samples` : `Rotation input: default ${valueFrames} zeroes`}
-                    </p>
                     {error && <p className="text-destructive text-xs">{error}</p>}
                 </div>
+                <div className="relative text-xs text-secondary-foreground">
+                    <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! bg-orange-500! border-orange-300!" data-type="value" />
+                    Amount
+                </div>
                 <Handle type="target" position={Position.Left} id="inputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
-                <Handle type="target" position={Position.Left} id="inputValue" className="top-16! size-3! bg-orange-500! border-orange-300!" data-type="value" />
                 <Handle type="source" position={Position.Right} id="outputTexture" className="top-8! size-3! bg-blue-500! border-blue-300!" data-type="texture" />
 
             </BaseNodeContent>

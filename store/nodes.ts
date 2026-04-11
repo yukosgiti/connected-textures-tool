@@ -6,13 +6,18 @@ export const NODE_TYPE_LABELS = {
   value: "Value",
   texture: "Texture",
   rotateTexture: "Rotate Texture",
+  translateTexture: "Translate Texture",
   preview: "Preview",
 } as const;
 
 export type AppNodeType = keyof typeof NODE_TYPE_LABELS;
 
-const PREVIEW_GRID_SIZE = 8;
-const PREVIEW_CENTER_INDEX = (PREVIEW_GRID_SIZE / 2 - 1) * PREVIEW_GRID_SIZE + (PREVIEW_GRID_SIZE / 2 - 1);
+export const DEFAULT_PREVIEW_GRID_SIZE = 8;
+
+function getPreviewCenterIndex(size: number) {
+  const center = Math.floor((size - 1) / 2);
+  return center * size + center;
+}
 
 function createNodeId(type: AppNodeType) {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -22,9 +27,9 @@ function createNodeId(type: AppNodeType) {
   return `${type}-${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
 }
 
-export function createDefaultPreviewCells() {
-  const cells = new Array(PREVIEW_GRID_SIZE * PREVIEW_GRID_SIZE).fill(false);
-  cells[PREVIEW_CENTER_INDEX] = true;
+export function createDefaultPreviewCells(size = DEFAULT_PREVIEW_GRID_SIZE) {
+  const cells = new Array(size * size).fill(false);
+  cells[getPreviewCenterIndex(size)] = true;
   return cells;
 }
 
@@ -36,8 +41,15 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, error: null };
     case "rotateTexture":
       return { texture: null, error: null };
+    case "translateTexture":
+      return { texture: null, error: null };
     case "preview":
-      return { texture: null, cells: createDefaultPreviewCells(), error: null };
+      return {
+        texture: null,
+        gridSize: DEFAULT_PREVIEW_GRID_SIZE,
+        cells: createDefaultPreviewCells(DEFAULT_PREVIEW_GRID_SIZE),
+        error: null,
+      };
   }
 }
 
