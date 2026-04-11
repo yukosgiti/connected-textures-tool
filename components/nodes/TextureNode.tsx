@@ -12,6 +12,7 @@ import {
     FileUploadDropzone,
 } from "@/components/ui/file-upload";
 import { useNodeData } from "@/hooks/store";
+import { cn } from "@/lib/utils";
 import useStore from "@/store/graph";
 import { type NodeDataPatch } from "@/store/types";
 import { Image01FreeIcons, X } from "@hugeicons/core-free-icons";
@@ -38,17 +39,8 @@ const PRESET_TEXTURE_ASSETS = [
     { name: "cobblestone.png", src: "/assets/cobblestone.png" },
     { name: "texture.png", src: "/assets/texture.png" },
     { name: "side_top.png", src: "/assets/side_top.png" },
-    { name: "side_rt.png", src: "/assets/side_rt.png" },
-    { name: "side_btm.png", src: "/assets/side_btm.png" },
-    { name: "side_lt.png", src: "/assets/side_lt.png" },
     { name: "crn_in_top_lt.png", src: "/assets/crn_in_top_lt.png" },
-    { name: "crn_in_top_rt.png", src: "/assets/crn_in_top_rt.png" },
-    { name: "crn_in_btm_rt.png", src: "/assets/crn_in_btm_rt.png" },
-    { name: "crn_in_btm_lt.png", src: "/assets/crn_in_btm_lt.png" },
     { name: "crn_out_top_lt.png", src: "/assets/crn_out_top_lt.png" },
-    { name: "crn_out_top_rt.png", src: "/assets/crn_out_top_rt.png" },
-    { name: "crn_out_btm_rt.png", src: "/assets/crn_out_btm_rt.png" },
-    { name: "crn_out_btm_lt.png", src: "/assets/crn_out_btm_lt.png" },
 ] as const;
 
 
@@ -187,9 +179,12 @@ export const TextureNode = memo(({ id }: Props) => {
                         {PRESET_TEXTURE_ASSETS.map((preset) => (
                             <Button
                                 key={preset.src}
-                                variant={texture?.name === preset.name ? "default" : "outline"}
+                                variant="outline"
                                 size="icon"
-                                className="size-4 overflow-hidden rounded-xs p-0"
+                                className={cn(
+                                    "size-4 overflow-hidden rounded-xs bg-transparent p-0",
+                                    texture?.name === preset.name && "border-primary",
+                                )}
                                 onClick={() => onPresetSelect(preset)}
                                 title={preset.name}
                                 disabled={isUploading}
