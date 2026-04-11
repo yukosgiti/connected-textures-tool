@@ -9,6 +9,8 @@ import {
 
 import { useNodeData } from "@/hooks/store";
 import useStore from "@/store/graph";
+import { FunctionSquareIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Handle, Position } from "@xyflow/react";
 import React from "react";
 import { createValueNodeData, DEFAULT_VALUE_NODE_CONFIG, normalizeValueNodeData, VALUE_MODE_LABELS, type ValueMode, type ValueNodeData } from "../../lib/value-node";
@@ -157,6 +159,7 @@ export const ValueNode = memo(({ id }: Props) => {
         <BaseNode className="w-96">
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
+                    <HugeiconsIcon icon={FunctionSquareIcon} />
                     Value
                 </BaseNodeHeaderTitle>
                 <ButtonGroup>

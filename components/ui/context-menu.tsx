@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { ContextMenu as ContextMenuPrimitive } from "radix-ui";
 import * as React from "react";
 
@@ -11,6 +13,10 @@ function ContextMenu(props: React.ComponentProps<typeof ContextMenuPrimitive.Roo
 
 function ContextMenuTrigger(props: React.ComponentProps<typeof ContextMenuPrimitive.Trigger>) {
     return <ContextMenuPrimitive.Trigger data-slot="context-menu-trigger" {...props} />;
+}
+
+function ContextMenuGroup(props: React.ComponentProps<typeof ContextMenuPrimitive.Group>) {
+    return <ContextMenuPrimitive.Group data-slot="context-menu-group" {...props} />;
 }
 
 function ContextMenuContent({ className, ...props }: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
@@ -42,6 +48,42 @@ function ContextMenuItem({ className, inset, ...props }: React.ComponentProps<ty
     );
 }
 
+function ContextMenuSub(props: React.ComponentProps<typeof ContextMenuPrimitive.Sub>) {
+    return <ContextMenuPrimitive.Sub data-slot="context-menu-sub" {...props} />;
+}
+
+function ContextMenuSubTrigger({ className, inset, children, ...props }: React.ComponentProps<typeof ContextMenuPrimitive.SubTrigger> & { inset?: boolean }) {
+    return (
+        <ContextMenuPrimitive.SubTrigger
+            data-slot="context-menu-sub-trigger"
+            className={cn(
+                "flex cursor-default items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
+                inset && "pl-8",
+                className,
+            )}
+            {...props}
+        >
+            <span className="flex items-center gap-2">{children}</span>
+            <ContextMenuShortcut>
+                <HugeiconsIcon icon={ArrowRight01Icon} />
+            </ContextMenuShortcut>
+        </ContextMenuPrimitive.SubTrigger>
+    );
+}
+
+function ContextMenuSubContent({ className, ...props }: React.ComponentProps<typeof ContextMenuPrimitive.SubContent>) {
+    return (
+        <ContextMenuPrimitive.SubContent
+            data-slot="context-menu-sub-content"
+            className={cn(
+                "z-50 min-w-44 overflow-hidden rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+                className,
+            )}
+            {...props}
+        />
+    );
+}
+
 function ContextMenuLabel({ className, inset, ...props }: React.ComponentProps<typeof ContextMenuPrimitive.Label> & { inset?: boolean }) {
     return (
         <ContextMenuPrimitive.Label
@@ -62,11 +104,26 @@ function ContextMenuSeparator({ className, ...props }: React.ComponentProps<type
     );
 }
 
+function ContextMenuShortcut({ className, ...props }: React.ComponentProps<"span">) {
+    return (
+        <span
+            data-slot="context-menu-shortcut"
+            className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)}
+            {...props}
+        />
+    );
+}
+
 export {
     ContextMenu,
     ContextMenuContent,
+    ContextMenuGroup,
     ContextMenuItem,
     ContextMenuLabel,
     ContextMenuSeparator,
+    ContextMenuShortcut,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
     ContextMenuTrigger
 };
