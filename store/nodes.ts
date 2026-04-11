@@ -1,4 +1,4 @@
-import { ZERO_VALUE_FRAMES } from "@/lib/utils";
+import { createValueNodeData } from "../lib/value-node";
 
 import { AppNode } from "./types";
 
@@ -7,6 +7,8 @@ export const NODE_TYPE_LABELS = {
   texture: "Texture",
   rotateTexture: "Rotate Texture",
   translateTexture: "Translate Texture",
+  scaleTexture: "Scale Texture",
+  hslTexture: "HSL Texture",
   preview: "Preview",
 } as const;
 
@@ -36,12 +38,16 @@ export function createDefaultPreviewCells(size = DEFAULT_PREVIEW_GRID_SIZE) {
 export function getInitialNodeData(type: AppNodeType) {
   switch (type) {
     case "value":
-      return { data: Array.from(ZERO_VALUE_FRAMES) };
+      return createValueNodeData();
     case "texture":
       return { texture: null, error: null };
     case "rotateTexture":
       return { texture: null, error: null };
     case "translateTexture":
+      return { texture: null, error: null };
+    case "scaleTexture":
+      return { texture: null, error: null };
+    case "hslTexture":
       return { texture: null, error: null };
     case "preview":
       return {

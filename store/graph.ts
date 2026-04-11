@@ -5,6 +5,8 @@ import { initialNodes } from './nodes';
 import { initialEdges } from './edges';
 import { AppState } from './types';
 import { PreviewNode } from '@/components/nodes/PreviewNode';
+import { HslTextureNode } from '@/components/nodes/HslTextureNode';
+import { ScaleTextureNode } from '@/components/nodes/ScaleTextureNode';
 import { TranslateTextureNode } from '@/components/nodes/TranslateTextureNode';
 import { ValueNode } from '@/components/nodes/ValueNode';
 import { TextureNode } from '@/components/nodes/TextureNode';
@@ -18,6 +20,8 @@ const useStore = create<AppState>((set, get) => ({
     texture: TextureNode,
     rotateTexture: RotateTextureNode,
     translateTexture: TranslateTextureNode,
+    scaleTexture: ScaleTextureNode,
+    hslTexture: HslTextureNode,
     preview: PreviewNode,
   },
   onNodesChange: (changes) => {
