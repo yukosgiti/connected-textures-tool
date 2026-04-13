@@ -104,7 +104,13 @@ function getPersistentNodeData(type: AppNodeType, data: JsonRecord) {
     case "randomTexture":
       return pickDefinedValues(data, ["mode", "seed", "fallbackRatio"])
     case "gradientTexture":
-      return pickDefinedValues(data, ["startColor", "endColor", "angle"])
+      return pickDefinedValues(data, [
+        "startColor",
+        "endColor",
+        "startPercentage",
+        "endPercentage",
+        "angle",
+      ])
     case "checkerboardTexture":
       return pickDefinedValues(data, ["colorA", "colorB", "scale"])
     case "radialGradientTexture":

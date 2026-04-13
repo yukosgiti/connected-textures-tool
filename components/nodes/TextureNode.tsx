@@ -44,7 +44,8 @@ const PRESET_TEXTURE_ASSETS = [
     { name: "crn_out_top_lt.png", src: "/assets/crn_out_top_lt.png" },
     { name: "linear-gradient.png", src: "/assets/linear-gradient.png" },
     { name: "circle.png", src: "/assets/circle.png" },
-    { name: "corner.png", src: "/assets/corner.png" }
+    { name: "corner.png", src: "/assets/corner.png" },
+    { name: "top.png", src: "/assets/top.png" }
 ] as const;
 
 

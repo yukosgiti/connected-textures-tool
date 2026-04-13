@@ -7,9 +7,10 @@ type Props = {
     max: number;
     step: number;
     onChange: (value: number) => void;
+    formatValue?: (value: number, step: number) => string;
 };
 
-function formatValue(value: number, step: number) {
+function defaultFormatValue(value: number, step: number) {
     if (step >= 1) {
         return value.toFixed(0);
     }
@@ -24,6 +25,7 @@ export function ValueFallbackSlider({
     max,
     step,
     onChange,
+    formatValue = defaultFormatValue,
 }: Props) {
     return (
         <label className="flex flex-col gap-1 nodrag">

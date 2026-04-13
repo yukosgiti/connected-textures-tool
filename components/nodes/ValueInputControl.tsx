@@ -11,6 +11,7 @@ type Props = {
     max: number
     step: number
     onChange: (value: number) => void
+    formatValue?: (value: number, step: number) => string
 }
 
 export function ValueInputControl({
@@ -22,6 +23,7 @@ export function ValueInputControl({
     max,
     step,
     onChange,
+    formatValue,
 }: Props) {
     if (hasInput) {
         return (
@@ -54,6 +56,7 @@ export function ValueInputControl({
                 max={max}
                 step={step}
                 onChange={onChange}
+                formatValue={formatValue}
             />
         </div>
     )

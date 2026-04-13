@@ -11,6 +11,7 @@ import {
 import { EmptyTexture, TexturePreview } from "@/components/EmptyTexture";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { useNodeData } from "@/hooks/store";
+import { useAsRef } from "@/hooks/use-as-ref";
 import { createColorTexture, normalizeHexColor } from "@/lib/procedural-texture";
 import { type SerializedTextureData } from "@/lib/texture";
 import useStore from "@/store/graph";
@@ -30,6 +31,7 @@ type ColorTextureNodeData = {
 };
 
 const DEFAULT_COLOR = "#3b82f6";
+const COLOR_PICKER_DEDUPE_MS = 50;
 
 export const ColorTextureNode = memo(({ id }: Props) => {
     const node = useNodeData(id);
@@ -39,10 +41,58 @@ export const ColorTextureNode = memo(({ id }: Props) => {
     const error = nodeData.error ?? null;
     const color = nodeData.color ?? DEFAULT_COLOR;
     const [draftColor, setDraftColor] = React.useState(color);
+    const colorRef = useAsRef(color);
+    const pendingPickerColorRef = React.useRef<string | null>(null);
+    const pickerCommitTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearPendingPickerCommit = React.useCallback(() => {
+        if (pickerCommitTimeoutRef.current) {
+            clearTimeout(pickerCommitTimeoutRef.current);
+            pickerCommitTimeoutRef.current = null;
+        }
+
+        pendingPickerColorRef.current = null;
+    }, []);
+
+    const commitPickerColor = React.useCallback((nextColor: string) => {
+        if (nextColor === colorRef.current) {
+            setNode(id, { error: null });
+            return;
+        }
+
+        setNode(id, { color: nextColor, error: null });
+    }, [colorRef, id, setNode]);
+
+    const schedulePickerColorCommit = React.useCallback((nextColor: string) => {
+        pendingPickerColorRef.current = nextColor;
+
+        if (pickerCommitTimeoutRef.current) {
+            clearTimeout(pickerCommitTimeoutRef.current);
+        }
+
+        pickerCommitTimeoutRef.current = setTimeout(() => {
+            pickerCommitTimeoutRef.current = null;
+
+            const pendingColor = pendingPickerColorRef.current;
+
+            if (!pendingColor) {
+                return;
+            }
+
+            pendingPickerColorRef.current = null;
+            commitPickerColor(pendingColor);
+        }, COLOR_PICKER_DEDUPE_MS);
+    }, [commitPickerColor]);
+
+    const colorInputValue = normalizeHexColor(draftColor) ?? color;
 
     React.useEffect(() => {
         setDraftColor(color);
     }, [color]);
+
+    React.useEffect(() => () => {
+        clearPendingPickerCommit();
+    }, [clearPendingPickerCommit]);
 
     React.useEffect(() => {
         if (!nodeData.color) {
@@ -64,6 +114,8 @@ export const ColorTextureNode = memo(({ id }: Props) => {
     }, [color, id, setNode]);
 
     const commitDraftColor = React.useCallback(() => {
+        clearPendingPickerCommit();
+
         const normalizedColor = normalizeHexColor(draftColor);
 
         if (!normalizedColor) {
@@ -74,7 +126,7 @@ export const ColorTextureNode = memo(({ id }: Props) => {
 
         setDraftColor(normalizedColor);
         setNode(id, { color: normalizedColor, error: null });
-    }, [color, draftColor, id, setNode]);
+    }, [clearPendingPickerCommit, color, draftColor, id, setNode]);
 
     return (
         <BaseNode className="w-48">
@@ -91,15 +143,15 @@ export const ColorTextureNode = memo(({ id }: Props) => {
                     <InputGroup className="nodrag">
                         <InputGroupAddon align="inline-start">
                             <label className="flex cursor-pointer items-center">
-                                <span className="size-4 rounded-sm border border-border" style={{ backgroundColor: color }} />
+                                <span className="size-4 rounded-sm border border-border" style={{ backgroundColor: colorInputValue }} />
                                 <input
                                     type="color"
-                                    value={color}
+                                    value={colorInputValue}
                                     className="sr-only"
                                     onChange={(event) => {
                                         const nextColor = normalizeHexColor(event.target.value) ?? DEFAULT_COLOR;
                                         setDraftColor(nextColor);
-                                        setNode(id, { color: nextColor, error: null });
+                                        schedulePickerColorCommit(nextColor);
                                     }}
                                 />
                             </label>

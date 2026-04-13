@@ -27,6 +27,8 @@ export type WaveTextureConfig = {
 export type LinearGradientTextureConfig = {
   startColor: string
   endColor: string
+  startPercentage: readonly number[]
+  endPercentage: readonly number[]
   angle: readonly number[]
 }
 
@@ -474,6 +476,8 @@ export function createRandomTexture(
 function renderLinearGradientFrame(
   startColor: ReturnType<typeof parseHexColor>,
   endColor: ReturnType<typeof parseHexColor>,
+  startPercentage: number,
+  endPercentage: number,
   angleTurns: number
 ) {
   const radians = angleTurns * TAU
@@ -482,13 +486,21 @@ function renderLinearGradientFrame(
   const framePixels = new Uint8ClampedArray(SIZE * SIZE * 4)
   const center = (SIZE - 1) / 2
   const maxDistance = Math.max(center, 1)
+  const safeStart = clamp(startPercentage, 0, 100) / 100
+  const safeEnd = clamp(endPercentage, safeStart * 100, 100) / 100
+  const gradientSpan = Math.max(safeEnd - safeStart, Number.EPSILON)
 
   for (let y = 0; y < SIZE; y += 1) {
     for (let x = 0; x < SIZE; x += 1) {
       const normalizedX = (x - center) / maxDistance
       const normalizedY = (y - center) / maxDistance
-      const amount = clamp(
+      const gradientAmount = clamp(
         (normalizedX * directionX + normalizedY * directionY + 1) / 2,
+        0,
+        1
+      )
+      const amount = clamp(
+        (gradientAmount - safeStart) / gradientSpan,
         0,
         1
       )
@@ -521,7 +533,10 @@ export function createLinearGradientTexture(
 ) {
   const startColor = parseHexColor(config.startColor)
   const endColor = parseHexColor(config.endColor)
-  const isAnimated = hasAnimatedValues(config.angle)
+  const isAnimated =
+    hasAnimatedValues(config.angle) ||
+    hasAnimatedValues(config.startPercentage) ||
+    hasAnimatedValues(config.endPercentage)
 
   if (!isAnimated) {
     return createTextureFromFrame(
@@ -529,6 +544,8 @@ export function createLinearGradientTexture(
       renderLinearGradientFrame(
         startColor,
         endColor,
+        getFrameValue(config.startPercentage, 0, 0),
+        getFrameValue(config.endPercentage, 0, 100),
         getFrameValue(config.angle, 0, 0)
       )
     )
@@ -542,6 +559,8 @@ export function createLinearGradientTexture(
       renderLinearGradientFrame(
         startColor,
         endColor,
+        getFrameValue(config.startPercentage, frameIndex, 0),
+        getFrameValue(config.endPercentage, frameIndex, 100),
         getFrameValue(config.angle, frameIndex, 0)
       ),
       frameIndex * frameByteLength

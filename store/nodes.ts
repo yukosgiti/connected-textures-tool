@@ -89,6 +89,8 @@ export function getInitialNodeData(type: AppNodeType) {
         error: null,
         startColor: "#0ea5e9",
         endColor: "#f97316",
+        startPercentage: 0,
+        endPercentage: 100,
         angle: 0,
       }
     case "checkerboardTexture":

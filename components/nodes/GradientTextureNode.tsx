@@ -36,24 +36,44 @@ type GradientTextureNodeData = {
     error?: string | null
     startColor?: string
     endColor?: string
+    startPercentage?: number
+    endPercentage?: number
     angle?: number
 }
 
 const DEFAULT_START_COLOR = "#0ea5e9"
 const DEFAULT_END_COLOR = "#f97316"
+const DEFAULT_START_PERCENTAGE = 0
+const DEFAULT_END_PERCENTAGE = 100
+
+function formatPercentageValue(value: number) {
+    return `${value.toFixed(0)}%`
+}
 
 export const GradientTextureNode = memo(({ id }: Props) => {
     const node = useNodeData(id)
     const inputMap = useNodeInputMap(id)
     const hasAngleInput = useHasNodeInput(id, "inputAngle")
+    const hasStartPercentageInput = useHasNodeInput(id, "inputStartPercentage")
+    const hasEndPercentageInput = useHasNodeInput(id, "inputEndPercentage")
     const setNode = useStore((store) => store.setNode)
     const angleInput = inputMap.inputAngle as ValueNodeData | undefined
+    const startPercentageInput = inputMap.inputStartPercentage as ValueNodeData | undefined
+    const endPercentageInput = inputMap.inputEndPercentage as ValueNodeData | undefined
     const nodeData = (node?.data as GradientTextureNodeData | undefined) ?? {}
     const texture = nodeData.texture ?? null
     const error = nodeData.error ?? null
     const startColor = nodeData.startColor ?? DEFAULT_START_COLOR
     const endColor = nodeData.endColor ?? DEFAULT_END_COLOR
+    const startPercentage = nodeData.startPercentage ?? DEFAULT_START_PERCENTAGE
+    const endPercentage = nodeData.endPercentage ?? DEFAULT_END_PERCENTAGE
     const angle = nodeData.angle ?? 0
+    const startPercentageValues = React.useMemo(() => {
+        return startPercentageInput?.data ?? createConstantValueFrames(startPercentage)
+    }, [startPercentage, startPercentageInput?.data])
+    const endPercentageValues = React.useMemo(() => {
+        return endPercentageInput?.data ?? createConstantValueFrames(endPercentage)
+    }, [endPercentage, endPercentageInput?.data])
     const angleValues = React.useMemo(() => {
         return angleInput?.data ?? createConstantValueFrames(angle)
     }, [angle, angleInput?.data])
@@ -79,6 +99,14 @@ export const GradientTextureNode = memo(({ id }: Props) => {
             nextData.endColor = DEFAULT_END_COLOR
         }
 
+        if (nodeData.startPercentage === undefined) {
+            nextData.startPercentage = DEFAULT_START_PERCENTAGE
+        }
+
+        if (nodeData.endPercentage === undefined) {
+            nextData.endPercentage = DEFAULT_END_PERCENTAGE
+        }
+
         if (nodeData.angle === undefined) {
             nextData.angle = 0
         }
@@ -87,13 +115,23 @@ export const GradientTextureNode = memo(({ id }: Props) => {
             nextData.error = null
             setNode(id, nextData)
         }
-    }, [id, nodeData.angle, nodeData.endColor, nodeData.startColor, setNode])
+    }, [
+        id,
+        nodeData.angle,
+        nodeData.endColor,
+        nodeData.endPercentage,
+        nodeData.startColor,
+        nodeData.startPercentage,
+        setNode,
+    ])
 
     React.useEffect(() => {
         try {
             const config: LinearGradientTextureConfig = {
                 startColor,
                 endColor,
+                startPercentage: startPercentageValues,
+                endPercentage: endPercentageValues,
                 angle: angleValues,
             }
 
@@ -107,7 +145,15 @@ export const GradientTextureNode = memo(({ id }: Props) => {
                         : "Could not generate the gradient texture.",
             })
         }
-    }, [angleValues, endColor, id, setNode, startColor])
+    }, [
+        angleValues,
+        endColor,
+        endPercentageValues,
+        id,
+        setNode,
+        startColor,
+        startPercentageValues,
+    ])
 
     return (
         <BaseNode className="w-60">
@@ -149,6 +195,38 @@ export const GradientTextureNode = memo(({ id }: Props) => {
                             setDraftEndColor(endColor)
                             setNode(id, { error: "Use a valid end color." })
                         }}
+                    />
+                    <ValueInputControl
+                        handleId="inputStartPercentage"
+                        label="Start"
+                        hasInput={hasStartPercentageInput}
+                        value={startPercentage}
+                        min={0}
+                        max={100}
+                        step={1}
+                        onChange={(value) =>
+                            setNode(id, {
+                                startPercentage: value,
+                                endPercentage: Math.max(endPercentage, value),
+                            })
+                        }
+                        formatValue={formatPercentageValue}
+                    />
+                    <ValueInputControl
+                        handleId="inputEndPercentage"
+                        label="End"
+                        hasInput={hasEndPercentageInput}
+                        value={endPercentage}
+                        min={0}
+                        max={100}
+                        step={1}
+                        onChange={(value) =>
+                            setNode(id, {
+                                startPercentage: Math.min(startPercentage, value),
+                                endPercentage: value,
+                            })
+                        }
+                        formatValue={formatPercentageValue}
                     />
                     <ValueInputControl
                         handleId="inputAngle"
