@@ -1,5 +1,6 @@
 import {
   type Edge,
+  type IsValidConnection,
   type Node,
   type OnNodesChange,
   type OnEdgesChange,
@@ -17,6 +18,7 @@ export type AppState = {
   onNodesChange: OnNodesChange<AppNode>;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
+  isValidConnection: IsValidConnection<Edge>;
   setNodes: (nodes: AppNode[]) => void;
   setEdges: (edges: Edge[]) => void;
   setNode: (id: string, newData: NodeDataPatch) => void;

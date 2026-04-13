@@ -45,7 +45,7 @@ import { ValueNode } from "@/components/nodes/ValueNode"
 import { TextureNode } from "@/components/nodes/TextureNode"
 import { RotateTextureNode } from "@/components/nodes/RotateTextureNode"
 import { HoldTextureNode } from "@/components/nodes/HoldTextureNode"
-import { type Connection } from "@xyflow/react"
+import { type Connection, type Edge } from "@xyflow/react"
 
 type HandleDataType = "value" | "texture" | "connectedTexture" | null
 
@@ -168,10 +168,26 @@ function getHandleDataType(
 }
 
 function isConnectionTypeValid(
-  connection: Connection,
+  connection: Connection | Edge,
+  edges: Edge[],
   getNode: (id: string) => { type?: string } | undefined
 ) {
   if (!connection.source || !connection.target) {
+    return false
+  }
+
+  if (connection.source === connection.target) {
+    return false
+  }
+
+  if (
+    connection.targetHandle &&
+    edges.some(
+      (edge) =>
+        edge.target === connection.target &&
+        edge.targetHandle === connection.targetHandle
+    )
+  ) {
     return false
   }
 
@@ -253,8 +269,11 @@ const useStore = create<AppState>((set, get) => ({
       edges: applyEdgeChanges(changes, get().edges),
     })
   },
+  isValidConnection: (connection) => {
+    return isConnectionTypeValid(connection, get().edges, get().getNode)
+  },
   onConnect: (connection) => {
-    if (!isConnectionTypeValid(connection, get().getNode)) {
+    if (!get().isValidConnection(connection)) {
       return
     }
 

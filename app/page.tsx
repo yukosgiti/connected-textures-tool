@@ -176,6 +176,7 @@ export default function Page() {
     onNodesChange,
     onEdgesChange,
     onConnect,
+    isValidConnection,
     setNodes,
     setEdges,
   } = useStore()
@@ -402,6 +403,7 @@ export default function Page() {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                isValidConnection={isValidConnection}
                 onInit={setReactFlowInstance}
                 fitView
               >
