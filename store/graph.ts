@@ -45,7 +45,9 @@ import { ValueNode } from "@/components/nodes/ValueNode"
 import { TextureNode } from "@/components/nodes/TextureNode"
 import { RotateTextureNode } from "@/components/nodes/RotateTextureNode"
 import { HoldTextureNode } from "@/components/nodes/HoldTextureNode"
+import { MagnifyTextureNode } from "@/components/nodes/MagnifyTextureNode"
 import { type Connection, type Edge } from "@xyflow/react"
+import { SwirlTextureNode } from "@/components/nodes/SwirlTextureNode"
 
 type HandleDataType = "value" | "texture" | "connectedTexture" | null
 
@@ -229,10 +231,12 @@ const useStore = create<AppState>((set, get) => ({
     connectedTextureSplit: ConnectedTextureSplitNode,
     connectedTexturePack: ConnectedTexturePackNode,
     rotateTexture: RotateTextureNode,
+    swirlTexture: SwirlTextureNode,
     skewTexture: SkewTextureNode,
     flipTexture: FlipTextureNode,
     translateTexture: TranslateTextureNode,
     scaleTexture: ScaleTextureNode,
+    magnifyTexture: MagnifyTextureNode,
     cropTexture: CropTextureNode,
     tileTexture: TileTextureNode,
     blurTexture: BlurTextureNode,

@@ -16,10 +16,12 @@ export const NODE_TYPE_LABELS = {
   connectedTextureSplit: "Connected Texture Split",
   connectedTexturePack: "Textures To Connected Texture",
   rotateTexture: "Rotate Texture",
+  swirlTexture: "Swirl Texture",
   skewTexture: "Skew Texture",
   flipTexture: "Flip Texture",
   translateTexture: "Offset Texture",
   scaleTexture: "Scale Texture",
+  magnifyTexture: "Magnify / Shrink",
   cropTexture: "Crop Texture",
   tileTexture: "Tile Texture",
   blurTexture: "Blur",
@@ -137,6 +139,8 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, outputTextures: {}, error: null }
     case "rotateTexture":
       return { texture: null, error: null, fallbackValue: 0 }
+    case "swirlTexture":
+      return { texture: null, error: null, fallbackValue: 0 }
     case "skewTexture":
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 }
     case "flipTexture":
@@ -145,6 +149,8 @@ export function getInitialNodeData(type: AppNodeType) {
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 }
     case "scaleTexture":
       return { texture: null, error: null, fallbackX: 0, fallbackY: 0 }
+    case "magnifyTexture":
+      return { texture: null, error: null, fallbackValue: 0 }
     case "cropTexture":
       return {
         texture: null,

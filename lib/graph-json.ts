@@ -138,6 +138,8 @@ function getPersistentNodeData(type: AppNodeType, data: JsonRecord) {
     case "export":
       return {}
     case "rotateTexture":
+    case "swirlTexture":
+    case "magnifyTexture":
       return pickDefinedValues(data, ["fallbackValue"])
     case "skewTexture":
       return pickDefinedValues(data, ["fallbackX", "fallbackY"])
