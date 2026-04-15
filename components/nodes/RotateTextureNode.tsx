@@ -16,6 +16,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Handle, Position } from "@xyflow/react";
 import React from "react";
 import { EmptyTexture, TexturePreview } from "../EmptyTexture";
+import { Button } from "../ui/button";
+import { ButtonGroup } from "../ui/button-group";
 import { ValueFallbackSlider } from "./ValueFallbackSlider";
 
 
@@ -40,6 +42,27 @@ type RotateTextureNodeData = {
     fallbackValue?: number;
 }
 
+const ROTATION_PRESET_DEGREES = [
+    0,
+    90,
+    180,
+    270,
+] as const;
+
+function chunkArray<T>(items: readonly T[], chunkSize: number) {
+    const chunks: T[][] = [];
+
+    for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize) as T[]);
+    }
+
+    return chunks;
+}
+
+function formatRotationValue(value: number) {
+    return `${Math.round(value * 360)}°`;
+}
+
 
 export const RotateTextureNode = memo(({ id }: Props) => {
     const node = useNodeData(id);
@@ -57,6 +80,9 @@ export const RotateTextureNode = memo(({ id }: Props) => {
     const texture = nodeData.texture ?? null;
     const error = nodeData.error ?? null;
     const fallbackValue = nodeData.fallbackValue ?? 0;
+    const rotationPresetRows = React.useMemo(() => {
+        return chunkArray(ROTATION_PRESET_DEGREES, 5);
+    }, []);
     const hasValueInput = React.useMemo(() => {
         return edges.some((edge) => edge.target === id && edge.targetHandle === "inputValue");
     }, [edges, id]);
@@ -104,6 +130,28 @@ export const RotateTextureNode = memo(({ id }: Props) => {
                     ) : (
                         <div className="relative">
                             <Handle type="target" position={Position.Left} id="inputValue" className="size-3! -left-3! top-1/2! -translate-y-1/2 bg-orange-500! border-orange-300!" data-type="value" />
+                            <div className="mb-2 flex flex-col gap-1 nodrag">
+                                {rotationPresetRows.map((row, rowIndex) => (
+                                    <ButtonGroup key={`rotation-presets-${rowIndex}`} className="w-full flex-wrap1">
+                                        {row.map((degrees) => {
+                                            const turnValue = degrees / 360;
+                                            const isActive = Math.abs(fallbackValue - turnValue) < 0.0001;
+
+                                            return (
+                                                <Button
+                                                    key={degrees}
+                                                    variant={isActive ? "default" : "outline"}
+                                                    className="nodrag flex-1 px-1 text-[10px]"
+                                                    size="xs"
+                                                    onClick={() => setNode(id, { fallbackValue: turnValue })}
+                                                >
+                                                    {degrees}°
+                                                </Button>
+                                            );
+                                        })}
+                                    </ButtonGroup>
+                                ))}
+                            </div>
                             <ValueFallbackSlider
                                 label="Amount"
                                 value={fallbackValue}
@@ -111,6 +159,7 @@ export const RotateTextureNode = memo(({ id }: Props) => {
                                 max={1}
                                 step={0.01}
                                 onChange={(value) => setNode(id, { fallbackValue: value })}
+                                formatValue={(value) => formatRotationValue(value)}
                             />
                         </div>
                     )}

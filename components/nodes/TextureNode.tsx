@@ -21,7 +21,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Handle, Position } from "@xyflow/react";
 import Image from "next/image";
 import React from "react";
-import { normalizeTextureFile, normalizeTextureUrl, type SerializedTextureData } from "../../lib/texture";
+import { createCountingTexture, normalizeTextureFile, normalizeTextureUrl, type SerializedTextureData } from "../../lib/texture";
 import { EmptyTexture, TexturePreview } from "../EmptyTexture";
 import { Button } from "../ui/button";
 
@@ -48,6 +48,18 @@ const PRESET_TEXTURE_ASSETS = [
     { name: "top.png", src: "/assets/top.png" }
 ] as const;
 
+type StaticPresetTexture = {
+    name: string;
+    src: string;
+};
+
+type GeneratedPresetTexture = {
+    name: string;
+    texture: SerializedTextureData;
+};
+
+type PresetTexture = StaticPresetTexture | GeneratedPresetTexture;
+
 
 const useTextureNode = (id: string) => {
     const node = useNodeData(id);
@@ -67,12 +79,20 @@ export const TextureNode = memo(({ id }: Props) => {
     const [nodeData, setNodeData] = useTextureNode(id);
     const [files, setFiles] = React.useState<File[]>([]);
     const [isUploading, setIsUploading] = React.useState(false);
+    const countingTexturePreset = React.useMemo(() => {
+        return {
+            name: "counting-texture",
+            texture: createCountingTexture("counting-texture"),
+        } satisfies GeneratedPresetTexture;
+    }, []);
     const presetTextures = React.useMemo(() => {
-        return PRESET_TEXTURE_ASSETS.map((preset) => ({
+        const staticPresets = PRESET_TEXTURE_ASSETS.map((preset) => ({
             ...preset,
             src: withBasePath(preset.src),
         }));
-    }, []);
+
+        return [...staticPresets, countingTexturePreset] satisfies PresetTexture[];
+    }, [countingTexturePreset]);
 
     const texture = nodeData.texture ?? null;
     const error = nodeData.error ?? null;
@@ -119,11 +139,13 @@ export const TextureNode = memo(({ id }: Props) => {
         }
     }, [setNodeData]);
 
-    const onPresetSelect = React.useCallback(async (preset: (typeof presetTextures)[number]) => {
+    const onPresetSelect = React.useCallback(async (preset: PresetTexture) => {
         setIsUploading(true);
 
         try {
-            const normalizedTexture = await normalizeTextureUrl(preset.src, preset.name);
+            const normalizedTexture = "texture" in preset
+                ? preset.texture
+                : await normalizeTextureUrl(preset.src, preset.name);
             setNodeData({ texture: normalizedTexture, error: null });
         } catch (presetError) {
             const error = presetError instanceof Error
@@ -189,7 +211,7 @@ export const TextureNode = memo(({ id }: Props) => {
                     <div className="nodrag flex flex-wrap gap-0.5">
                         {presetTextures.map((preset) => (
                             <Button
-                                key={preset.src}
+                                key={preset.name}
                                 variant="outline"
                                 size="icon"
                                 className={cn(
@@ -200,14 +222,18 @@ export const TextureNode = memo(({ id }: Props) => {
                                 title={preset.name}
                                 disabled={isUploading}
                             >
-                                <Image
-                                    src={preset.src}
-                                    alt={preset.name}
-                                    width={32}
-                                    height={32}
-                                    className="size-4 object-cover"
-                                    style={{ imageRendering: "pixelated" }}
-                                />
+                                {"texture" in preset ? (
+                                    <TexturePreview texture={preset.texture} className="size-4 overflow-hidden rounded-none border-none" />
+                                ) : (
+                                    <Image
+                                        src={preset.src}
+                                        alt={preset.name}
+                                        width={32}
+                                        height={32}
+                                        className="size-4 object-cover"
+                                        style={{ imageRendering: "pixelated" }}
+                                    />
+                                )}
                             </Button>
                         ))}
                     </div>
