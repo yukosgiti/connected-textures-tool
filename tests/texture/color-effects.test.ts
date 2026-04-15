@@ -59,6 +59,28 @@ describe("texture color effects", () => {
     expect(Array.from(getFramePixels(blurred))).toEqual(Array.from(getFramePixels(texture)))
   })
 
+  it("runs the gaussian blur path for opaque pixels", () => {
+    const texture = createTexture({
+      width: 1,
+      frameSize: 1,
+      frames: [createFrame(rgba(120, 80, 40, 255))],
+    })
+    const blurred = blurTexture(texture, [1])
+
+    expect(getPixel(getFramePixels(blurred), 1, 0, 0)).toEqual([120, 80, 40, 255])
+  })
+
+  it("keeps fully transparent pixels transparent through blur", () => {
+    const texture = createTexture({
+      width: 1,
+      frameSize: 1,
+      frames: [createFrame(rgba(120, 80, 40, 0))],
+    })
+    const blurred = blurTexture(texture, [1])
+
+    expect(getPixel(getFramePixels(blurred), 1, 0, 0)).toEqual([0, 0, 0, 0])
+  })
+
   it("masks alpha by luminance", () => {
     const texture = createTexture({
       width: 1,

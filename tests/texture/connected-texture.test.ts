@@ -113,9 +113,89 @@ describe("connected texture template lookup", () => {
       )
     ).toBe(26)
   })
+
+  it("maps outer-corner neighbor configurations to the expected template ids", () => {
+    expect(
+      getConnectedTextureTemplateIndex(
+        [
+          false,
+          true,
+          false,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+        ],
+        3,
+        4
+      )
+    ).toBe(17)
+
+    expect(
+      getConnectedTextureTemplateIndex(
+        [
+          false,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          false,
+        ],
+        3,
+        4
+      )
+    ).toBe(16)
+
+    expect(
+      getConnectedTextureTemplateIndex(
+        [
+          false,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          false,
+        ],
+        3,
+        4
+      )
+    ).toBe(5)
+
+    expect(
+      getConnectedTextureTemplateIndex(
+        [
+          false,
+          false,
+          false,
+          false,
+          true,
+          true,
+          false,
+          true,
+          false,
+        ],
+        3,
+        4
+      )
+    ).toBe(4)
+  })
 })
 
 describe("connected texture output packing", () => {
+  it("requires at least the first output texture", () => {
+    expect(() => packConnectedTextureOutputs({})).toThrow(
+      "Connected texture outputs are required."
+    )
+  })
+
   it("packs all outputs into a preview strip", () => {
     const outputs = Object.fromEntries(
       CONNECTED_TEXTURE_OUTPUTS.map(({ handleId, index }) => [
@@ -237,6 +317,34 @@ describe("connected texture generation", () => {
         }),
       })
     ).toThrow("Connected texture inputs must all use the same square dimensions and frame count.")
+  })
+
+  it("rejects non-square required textures", () => {
+    expect(() =>
+      generateConnectedTexture({
+        texture: createTexture({
+          name: "Base",
+          width: 4,
+          frameSize: 3,
+          frames: [createSolidFrame(4, 3, rgba(10, 20, 30, 255))],
+        }),
+        side_top: createOverlayTexture({
+          name: "Side",
+          size: 3,
+          pixels: [{ x: 1, y: 0, color: rgba(255, 0, 0, 255) }],
+        }),
+        crn_in_top_lt: createOverlayTexture({
+          name: "Inner",
+          size: 3,
+          pixels: [{ x: 0, y: 0, color: rgba(0, 255, 0, 255) }],
+        }),
+        crn_out_top_lt: createOverlayTexture({
+          name: "Outer",
+          size: 3,
+          pixels: [{ x: 0, y: 2, color: rgba(0, 0, 255, 255) }],
+        }),
+      })
+    ).toThrow("Base must be square.")
   })
 
   it("builds all output textures and rotates derived layers into the right positions", () => {
