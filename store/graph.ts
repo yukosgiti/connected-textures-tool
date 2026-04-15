@@ -4,6 +4,7 @@ import { initialNodes } from "./nodes"
 import { initialEdges } from "./edges"
 import { AppState } from "./types"
 import { PreviewNode } from "@/components/nodes/PreviewNode"
+import { AdvancedConnectedTextureNode } from "@/components/nodes/AdvancedConnectedTextureNode"
 import { ConnectedTextureNode } from "@/components/nodes/ConnectedTextureNode"
 import { ConnectedTexturePackNode } from "@/components/nodes/ConnectedTexturePackNode"
 import { ConnectedTextureSplitNode } from "@/components/nodes/ConnectedTextureSplitNode"
@@ -100,6 +101,7 @@ function getHandleDataType(
         ? "value"
         : null
     case "connectedTexture":
+    case "advancedConnectedTexture":
       return direction === "source" ? "connectedTexture" : "texture"
     case "connectedTextureSplit":
       return direction === "source"
@@ -230,6 +232,7 @@ const useStore = create<AppState>((set, get) => ({
     squareWaveTexture: SquareWaveTextureNode,
     radialWaveTexture: RadialWaveTextureNode,
     connectedTexture: ConnectedTextureNode,
+    advancedConnectedTexture: AdvancedConnectedTextureNode,
     connectedTextureSplit: ConnectedTextureSplitNode,
     connectedTexturePack: ConnectedTexturePackNode,
     rotateTexture: RotateTextureNode,

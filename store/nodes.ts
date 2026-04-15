@@ -13,7 +13,8 @@ export const NODE_TYPE_LABELS = {
   sineWaveTexture: "Sine Wave Texture",
   squareWaveTexture: "Square Wave Texture",
   radialWaveTexture: "Radial Wave Texture",
-  connectedTexture: "Connected Texture",
+  connectedTexture: "Simple Connected Texture",
+  advancedConnectedTexture: "Advanced Connected Texture",
   connectedTextureSplit: "Connected Texture Split",
   connectedTexturePack: "Textures To Connected Texture",
   rotateTexture: "Rotate Texture",
@@ -142,7 +143,21 @@ export function getInitialNodeData(type: AppNodeType) {
         phase: 0,
       }
     case "connectedTexture":
-      return { texture: null, outputTextures: {}, error: null, debug: false }
+      return {
+        texture: null,
+        outputTextures: {},
+        error: null,
+        debug: false,
+        mode: "normal",
+      }
+    case "advancedConnectedTexture":
+      return {
+        texture: null,
+        outputTextures: {},
+        error: null,
+        debug: false,
+        mode: "normal",
+      }
     case "connectedTextureSplit":
       return { texture: null, outputTextures: {}, error: null }
     case "connectedTexturePack":

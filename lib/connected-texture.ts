@@ -2,8 +2,11 @@ import connectedTextureManifest from "@/lib/connected-texture-templates.json";
 import {
   encodeTexturePixels,
   getTextureFramePixels,
+  TEXTURE_BLEND_MODE_LABELS,
   type SerializedTextureData,
+  type TextureBlendMode,
 } from "@/lib/texture";
+import { blendChannel, clampUnit } from "@/lib/texture/internal";
 
 export type ConnectedTextureInputKey =
   | "texture"
@@ -63,15 +66,34 @@ type ConnectedTextureNeighbors = {
 };
 
 export type ConnectedTextureInputs = Partial<Record<ConnectedTextureInputKey, SerializedTextureData | null>>;
+export type AdvancedConnectedTextureInputKey = ConnectedTextureAssetKey;
+export type AdvancedConnectedTextureInputs = Partial<Record<AdvancedConnectedTextureInputKey, SerializedTextureData | null>>;
 export type ConnectedTextureOutputTextures = Record<string, SerializedTextureData>;
 export type ConnectedTextureData = {
   texture: SerializedTextureData;
   outputTextures: ConnectedTextureOutputTextures;
 };
 
+export const CONNECTED_TEXTURE_BLEND_MODE_LABELS = TEXTURE_BLEND_MODE_LABELS;
+
 const manifest = connectedTextureManifest as ConnectedTextureManifest;
 
 export const CONNECTED_TEXTURE_REQUIRED_INPUTS = manifest.requiredInputs;
+export const ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS = [
+  { key: "texture", label: "Base", description: "Base texture." },
+  { key: "side_top", label: "Side Top", description: "Top edge texture." },
+  { key: "side_rt", label: "Side Right", description: "Right edge texture." },
+  { key: "side_btm", label: "Side Bottom", description: "Bottom edge texture." },
+  { key: "side_lt", label: "Side Left", description: "Left edge texture." },
+  { key: "crn_in_top_lt", label: "Inner Top Left", description: "Inner top-left corner texture." },
+  { key: "crn_in_top_rt", label: "Inner Top Right", description: "Inner top-right corner texture." },
+  { key: "crn_in_btm_lt", label: "Inner Bottom Left", description: "Inner bottom-left corner texture." },
+  { key: "crn_in_btm_rt", label: "Inner Bottom Right", description: "Inner bottom-right corner texture." },
+  { key: "crn_out_top_lt", label: "Outer Top Left", description: "Outer top-left corner texture." },
+  { key: "crn_out_top_rt", label: "Outer Top Right", description: "Outer top-right corner texture." },
+  { key: "crn_out_btm_lt", label: "Outer Bottom Left", description: "Outer bottom-left corner texture." },
+  { key: "crn_out_btm_rt", label: "Outer Bottom Right", description: "Outer bottom-right corner texture." },
+] as const;
 export const CONNECTED_TEXTURE_TEMPLATE_COUNT = manifest.frameCount;
 export const CONNECTED_TEXTURE_INPUT_HANDLE_ID = "inputConnectedTexture";
 export const CONNECTED_TEXTURE_OUTPUT_HANDLE_ID = "outputConnectedTexture";
@@ -114,8 +136,19 @@ export function createEmptyConnectedTextureInputs(): Record<ConnectedTextureInpu
   };
 }
 
+export function createEmptyAdvancedConnectedTextureInputs(): Record<AdvancedConnectedTextureInputKey, null> {
+  return ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS.reduce<Record<AdvancedConnectedTextureInputKey, null>>((accumulator, input) => {
+    accumulator[input.key] = null;
+    return accumulator;
+  }, {} as Record<AdvancedConnectedTextureInputKey, null>);
+}
+
 export function getConnectedTextureMissingInputs(inputs: ConnectedTextureInputs) {
   return CONNECTED_TEXTURE_REQUIRED_INPUTS.filter(({ key }) => !inputs[key]);
+}
+
+export function getAdvancedConnectedTextureMissingInputs(inputs: AdvancedConnectedTextureInputs) {
+  return ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS.filter(({ key }) => !inputs[key]);
 }
 
 function assertSquareTexture(texture: SerializedTextureData, inputLabel: string) {
@@ -230,6 +263,68 @@ function compositeSourceOver(target: Uint8ClampedArray, overlay: Uint8ClampedArr
     target[index + 1] = Math.round(outGreen * 255);
     target[index + 2] = Math.round(outBlue * 255);
     target[index + 3] = Math.round(outAlpha * 255);
+  }
+}
+
+function compositeWithBlendMode(
+  target: Uint8ClampedArray,
+  overlay: Uint8ClampedArray,
+  mode: TextureBlendMode,
+) {
+  if (mode === "normal") {
+    compositeSourceOver(target, overlay);
+    return;
+  }
+
+  for (let index = 0; index < target.length; index += 4) {
+    const sourceAlpha = overlay[index + 3] / 255;
+
+    if (sourceAlpha <= 0) {
+      continue;
+    }
+
+    const targetAlpha = target[index + 3] / 255;
+    const outAlpha = sourceAlpha + targetAlpha * (1 - sourceAlpha);
+
+    if (outAlpha <= 0) {
+      target[index] = 0;
+      target[index + 1] = 0;
+      target[index + 2] = 0;
+      target[index + 3] = 0;
+      continue;
+    }
+
+    const sourceRed = overlay[index] / 255;
+    const sourceGreen = overlay[index + 1] / 255;
+    const sourceBlue = overlay[index + 2] / 255;
+    const targetRed = target[index] / 255;
+    const targetGreen = target[index + 1] / 255;
+    const targetBlue = target[index + 2] / 255;
+
+    const mergedRed = blendChannel(targetRed, sourceRed, mode);
+    const mergedGreen = blendChannel(targetGreen, sourceGreen, mode);
+    const mergedBlue = blendChannel(targetBlue, sourceBlue, mode);
+
+    const outRed =
+      outAlpha === 0
+        ? 0
+        : ((1 - sourceAlpha) * targetRed * targetAlpha + sourceAlpha * mergedRed) /
+          outAlpha;
+    const outGreen =
+      outAlpha === 0
+        ? 0
+        : ((1 - sourceAlpha) * targetGreen * targetAlpha + sourceAlpha * mergedGreen) /
+          outAlpha;
+    const outBlue =
+      outAlpha === 0
+        ? 0
+        : ((1 - sourceAlpha) * targetBlue * targetAlpha + sourceAlpha * mergedBlue) /
+          outAlpha;
+
+    target[index] = Math.round(clampUnit(outRed) * 255);
+    target[index + 1] = Math.round(clampUnit(outGreen) * 255);
+    target[index + 2] = Math.round(clampUnit(outBlue) * 255);
+    target[index + 3] = Math.round(clampUnit(outAlpha) * 255);
   }
 }
 
@@ -454,7 +549,56 @@ function createConnectedTextureOutput(
   };
 }
 
-export function generateConnectedTexture(inputs: ConnectedTextureInputs): ConnectedTextureData {
+function createResolvedConnectedTextureInputs(
+  baseTexture: SerializedTextureData,
+  resolvedInputs: Map<ConnectedTextureAssetKey, ConnectedTextureFrames>,
+  mode: TextureBlendMode,
+) {
+  const textureSize = baseTexture.frameSize;
+  const textureFrames = baseTexture.frames;
+  const frameByteLength = textureSize * textureSize * 4;
+  const outputTextures: ConnectedTextureOutputTextures = {};
+  const baseFrames = resolvedInputs.get("texture");
+
+  if (!baseFrames) {
+    throw new Error("Base texture is required.");
+  }
+
+  for (const template of manifest.templates) {
+    const layers = sortTemplateLayers(template.layers);
+    const outputTexturePixels = new Uint8ClampedArray(frameByteLength * textureFrames);
+
+    for (let frameIndex = 0; frameIndex < textureFrames; frameIndex += 1) {
+      const framePixels = new Uint8ClampedArray(baseFrames[frameIndex]);
+
+      for (const layerKey of layers) {
+        const layerFrames = resolvedInputs.get(layerKey);
+
+        if (!layerFrames) {
+          throw new Error(`Missing template layer: ${layerKey}.`);
+        }
+
+        compositeWithBlendMode(framePixels, layerFrames[frameIndex], mode);
+      }
+
+      outputTexturePixels.set(framePixels, frameIndex * frameByteLength);
+    }
+
+    outputTextures[`outputTexture${template.index}`] = createConnectedTextureOutput(
+      baseTexture,
+      outputTexturePixels,
+      template.index,
+      textureFrames,
+    );
+  }
+
+  return outputTextures;
+}
+
+export function generateConnectedTexture(
+  inputs: ConnectedTextureInputs,
+  mode: TextureBlendMode = "normal",
+): ConnectedTextureData {
   const baseTexture = getRequiredInputTexture(inputs, "texture");
   const textureSize = baseTexture.frameSize;
   const textureFrames = baseTexture.frames;
@@ -489,41 +633,46 @@ export function generateConnectedTexture(inputs: ConnectedTextureInputs): Connec
     );
   }
 
-  const frameByteLength = textureSize * textureSize * 4;
-  const outputTextures: ConnectedTextureOutputTextures = {};
-  const baseFrames = resolvedInputs.get("texture");
+  const outputTextures = createResolvedConnectedTextureInputs(baseTexture, resolvedInputs, mode);
 
-  if (!baseFrames) {
-    throw new Error("Base texture is required.");
+  return packConnectedTextureOutputs(outputTextures, `${baseTexture.name} (${mode} connected)`);
+}
+
+export function generateAdvancedConnectedTexture(
+  inputs: AdvancedConnectedTextureInputs,
+  mode: TextureBlendMode = "normal",
+): ConnectedTextureData {
+  const baseTexture = inputs.texture;
+
+  if (!baseTexture) {
+    throw new Error("Base is required.");
   }
 
-  for (const template of manifest.templates) {
-    const layers = sortTemplateLayers(template.layers);
-    const outputTexturePixels = new Uint8ClampedArray(frameByteLength * textureFrames);
+  const textureSize = baseTexture.frameSize;
+  const textureFrames = baseTexture.frames;
+  const resolvedInputs = new Map<ConnectedTextureAssetKey, ConnectedTextureFrames>();
 
-    for (let frameIndex = 0; frameIndex < textureFrames; frameIndex += 1) {
-      const framePixels = new Uint8ClampedArray(baseFrames[frameIndex]);
+  for (const inputMeta of ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS) {
+    const inputTexture = inputs[inputMeta.key];
 
-      for (const layerKey of layers) {
-        const layerFrames = resolvedInputs.get(layerKey);
-
-        if (!layerFrames) {
-          throw new Error(`Missing template layer: ${layerKey}.`);
-        }
-
-        compositeSourceOver(framePixels, layerFrames[frameIndex]);
-      }
-
-      outputTexturePixels.set(framePixels, frameIndex * frameByteLength);
+    if (!inputTexture) {
+      throw new Error(`${inputMeta.label} is required.`);
     }
 
-    outputTextures[`outputTexture${template.index}`] = createConnectedTextureOutput(
-      baseTexture,
-      outputTexturePixels,
-      template.index,
-      textureFrames,
-    );
+    assertSquareTexture(inputTexture, inputMeta.label);
+
+    if (
+      inputTexture.frameSize !== textureSize
+      || inputTexture.width !== baseTexture.width
+      || inputTexture.frames !== textureFrames
+    ) {
+      throw new Error("Connected texture inputs must all use the same square dimensions and frame count.");
+    }
+
+    resolvedInputs.set(inputMeta.key, createTextureFrames(inputTexture));
   }
 
-  return packConnectedTextureOutputs(outputTextures, `${baseTexture.name} (connected)`);
+  const outputTextures = createResolvedConnectedTextureInputs(baseTexture, resolvedInputs, mode);
+
+  return packConnectedTextureOutputs(outputTextures, `${baseTexture.name} (${mode} advanced connected)`);
 }

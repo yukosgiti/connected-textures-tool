@@ -1,9 +1,13 @@
 import {
+  ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS,
   CONNECTED_TEXTURE_OUTPUTS,
   CONNECTED_TEXTURE_REQUIRED_INPUTS,
   CONNECTED_TEXTURE_TEMPLATE_COUNT,
+  createEmptyAdvancedConnectedTextureInputs,
   createEmptyConnectedTextureInputs,
+  generateAdvancedConnectedTexture,
   generateConnectedTexture,
+  getAdvancedConnectedTextureMissingInputs,
   getConnectedTextureMissingInputs,
   getConnectedTextureTemplateIndex,
   getConnectedTextureTextureInputHandleId,
@@ -74,6 +78,14 @@ describe("connected texture helpers", () => {
       "crn_in_top_lt",
       "crn_out_top_lt",
     ])
+  })
+
+  it("reports missing advanced inputs from an empty input set", () => {
+    const inputs = createEmptyAdvancedConnectedTextureInputs()
+
+    expect(getAdvancedConnectedTextureMissingInputs(inputs).map(({ key }) => key)).toEqual(
+      ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS.map(({ key }) => key)
+    )
   })
 })
 
@@ -385,5 +397,84 @@ describe("connected texture generation", () => {
     expect(getPixel(outputFive, 3, 0, 1)).toEqual([10, 20, 30, 255])
 
     expect(Array.from(getFramePixels(result.texture, 5))).toEqual(Array.from(outputFive))
+  })
+
+  it("applies the selected blend mode when compositing connected texture layers", () => {
+    const baseTexture = createTexture({
+      name: "Base",
+      width: 3,
+      frameSize: 3,
+      frames: [createSolidFrame(3, 3, rgba(50, 20, 10, 255))],
+    })
+    const result = generateConnectedTexture(
+      {
+        texture: baseTexture,
+        side_top: createOverlayTexture({
+          name: "Side",
+          size: 3,
+          pixels: [{ x: 1, y: 0, color: rgba(100, 120, 140, 255) }],
+        }),
+        crn_in_top_lt: createOverlayTexture({
+          name: "Inner",
+          size: 3,
+          pixels: [{ x: 0, y: 0, color: rgba(0, 0, 0, 0) }],
+        }),
+        crn_out_top_lt: createOverlayTexture({
+          name: "Outer",
+          size: 3,
+          pixels: [{ x: 0, y: 2, color: rgba(0, 0, 0, 0) }],
+        }),
+      },
+      "add",
+    )
+
+    const outputFive = getFramePixels(result.outputTextures.outputTexture5, 0)
+
+    expect(getPixel(outputFive, 3, 1, 0)).toEqual([150, 140, 150, 255])
+  })
+
+  it("builds connected textures from fully manual advanced inputs", () => {
+    const transparent = (name: string) =>
+      createTexture({
+        name,
+        width: 3,
+        frameSize: 3,
+        frames: [createSolidFrame(3, 3, rgba(0, 0, 0, 0))],
+      })
+
+    const advancedInputs = ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS.reduce<Record<string, ReturnType<typeof createTexture>>>((accumulator, input) => {
+      accumulator[input.key] = transparent(input.label)
+      return accumulator
+    }, {})
+
+    advancedInputs.texture = createTexture({
+      name: "Base",
+      width: 3,
+      frameSize: 3,
+      frames: [createSolidFrame(3, 3, rgba(10, 20, 30, 255))],
+    })
+    advancedInputs.side_rt = createOverlayTexture({
+      name: "Side Right",
+      size: 3,
+      pixels: [{ x: 2, y: 1, color: rgba(255, 0, 0, 255) }],
+    })
+    advancedInputs.crn_in_top_rt = createOverlayTexture({
+      name: "Inner Top Right",
+      size: 3,
+      pixels: [{ x: 2, y: 0, color: rgba(0, 255, 0, 255) }],
+    })
+    advancedInputs.crn_out_btm_lt = createOverlayTexture({
+      name: "Outer Bottom Left",
+      size: 3,
+      pixels: [{ x: 0, y: 2, color: rgba(0, 0, 255, 255) }],
+    })
+
+    const result = generateAdvancedConnectedTexture(advancedInputs)
+    const outputFive = getFramePixels(result.outputTextures.outputTexture5, 0)
+
+    expect(getPixel(outputFive, 3, 2, 1)).toEqual([255, 0, 0, 255])
+    expect(getPixel(outputFive, 3, 2, 0)).toEqual([0, 255, 0, 255])
+    expect(getPixel(outputFive, 3, 0, 2)).toEqual([0, 0, 255, 255])
+    expect(getPixel(outputFive, 3, 0, 1)).toEqual([10, 20, 30, 255])
   })
 })

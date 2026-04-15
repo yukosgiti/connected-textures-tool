@@ -107,6 +107,7 @@ const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
     label: "Connected Textures",
     types: [
       "connectedTexture",
+      "advancedConnectedTexture",
       "connectedTextureSplit",
       "connectedTexturePack",
     ],
@@ -127,6 +128,7 @@ const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
   squareWaveTexture: Image01FreeIcons,
   radialWaveTexture: Image01FreeIcons,
   connectedTexture: Image01FreeIcons,
+  advancedConnectedTexture: Image01FreeIcons,
   connectedTextureSplit: Image01FreeIcons,
   connectedTexturePack: Image01FreeIcons,
   rotateTexture: Rotate360FreeIcons,

@@ -25,8 +25,9 @@ import {
     CONNECTED_TEXTURE_BLEND_MODE_LABELS,
     CONNECTED_TEXTURE_OUTPUT_HANDLE_ID,
     CONNECTED_TEXTURE_OUTPUTS,
-    generateConnectedTexture,
-    getConnectedTextureMissingInputs
+    generateAdvancedConnectedTexture,
+    getAdvancedConnectedTextureMissingInputs,
+    type AdvancedConnectedTextureInputs,
 } from "@/lib/connected-texture";
 import { type SerializedTextureData, type TextureBlendMode } from "@/lib/texture";
 import useStore from "@/store/graph";
@@ -40,7 +41,7 @@ type Props = {
     id: string;
 };
 
-type ConnectedTextureNodeData = {
+type AdvancedConnectedTextureNodeData = {
     texture?: SerializedTextureData | null;
     outputTextures?: Record<string, SerializedTextureData | null>;
     error?: string | null;
@@ -83,16 +84,32 @@ function areOutputTexturesEqual(
     return leftKeys.every((key) => areTexturesEqual(left[key] ?? null, right[key] ?? null));
 }
 
-const CONNECTED_TEXTURE_HANDLES = [
+const ADVANCED_CONNECTED_TEXTURE_HANDLES = [
     { handleId: "inputTexture", key: "texture", label: "Base" },
     { handleId: "inputSideTop", key: "side_top", label: "Side Top" },
+    { handleId: "inputSideRight", key: "side_rt", label: "Side Right" },
+    { handleId: "inputSideBottom", key: "side_btm", label: "Side Bottom" },
+    { handleId: "inputSideLeft", key: "side_lt", label: "Side Left" },
     { handleId: "inputInnerTopLeft", key: "crn_in_top_lt", label: "Inner Top Left" },
+    { handleId: "inputInnerTopRight", key: "crn_in_top_rt", label: "Inner Top Right" },
+    { handleId: "inputInnerBottomLeft", key: "crn_in_btm_lt", label: "Inner Bottom Left" },
+    { handleId: "inputInnerBottomRight", key: "crn_in_btm_rt", label: "Inner Bottom Right" },
     { handleId: "inputOuterTopLeft", key: "crn_out_top_lt", label: "Outer Top Left" },
+    { handleId: "inputOuterTopRight", key: "crn_out_top_rt", label: "Outer Top Right" },
+    { handleId: "inputOuterBottomLeft", key: "crn_out_btm_lt", label: "Outer Bottom Left" },
+    { handleId: "inputOuterBottomRight", key: "crn_out_btm_rt", label: "Outer Bottom Right" },
 ] as const;
 
 const DEFAULT_BLEND_MODE: TextureBlendMode = "normal";
 
-export const ConnectedTextureNode = memo(({ id }: Props) => {
+function getInputTexture(
+    inputMap: Record<string, unknown>,
+    handleId: string,
+) {
+    return (inputMap[handleId] as TextureNodeData | undefined)?.texture ?? null;
+}
+
+export const AdvancedConnectedTextureNode = memo(({ id }: Props) => {
     const node = useNodeData(id);
     const setNode = useStore((store) => store.setNode);
     const nodes = useStore((store) => store.nodes);
@@ -110,25 +127,60 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                 return accumulator;
             }, {});
     }, [edges, id, nodes]);
-    const nodeData = (node?.data as ConnectedTextureNodeData | undefined) ?? {};
-    const baseTexture = (inputMap.inputTexture as TextureNodeData | undefined)?.texture ?? null;
-    const sideTopTexture = (inputMap.inputSideTop as TextureNodeData | undefined)?.texture ?? null;
-    const innerTopLeftTexture = (inputMap.inputInnerTopLeft as TextureNodeData | undefined)?.texture ?? null;
-    const outerTopLeftTexture = (inputMap.inputOuterTopLeft as TextureNodeData | undefined)?.texture ?? null;
+    const nodeData = (node?.data as AdvancedConnectedTextureNodeData | undefined) ?? {};
+    const baseTexture = getInputTexture(inputMap, "inputTexture");
+    const sideTopTexture = getInputTexture(inputMap, "inputSideTop");
+    const sideRightTexture = getInputTexture(inputMap, "inputSideRight");
+    const sideBottomTexture = getInputTexture(inputMap, "inputSideBottom");
+    const sideLeftTexture = getInputTexture(inputMap, "inputSideLeft");
+    const innerTopLeftTexture = getInputTexture(inputMap, "inputInnerTopLeft");
+    const innerTopRightTexture = getInputTexture(inputMap, "inputInnerTopRight");
+    const innerBottomLeftTexture = getInputTexture(inputMap, "inputInnerBottomLeft");
+    const innerBottomRightTexture = getInputTexture(inputMap, "inputInnerBottomRight");
+    const outerTopLeftTexture = getInputTexture(inputMap, "inputOuterTopLeft");
+    const outerTopRightTexture = getInputTexture(inputMap, "inputOuterTopRight");
+    const outerBottomLeftTexture = getInputTexture(inputMap, "inputOuterBottomLeft");
+    const outerBottomRightTexture = getInputTexture(inputMap, "inputOuterBottomRight");
     const texture = nodeData.texture ?? null;
     const outputTextures = nodeData.outputTextures ?? {};
+    const outputTextureCount = Object.keys(outputTextures).length;
     const error = nodeData.error ?? null;
-    const isCleared = texture === null && error === null && Object.keys(outputTextures).length === 0;
+    const isCleared = texture === null && error === null && outputTextureCount === 0;
     const debug = nodeData.debug ?? false;
     const mode = nodeData.mode ?? DEFAULT_BLEND_MODE;
     const missingInputs = React.useMemo(() => {
-        return getConnectedTextureMissingInputs({
+        const inputs: AdvancedConnectedTextureInputs = {
             texture: baseTexture,
             side_top: sideTopTexture,
+            side_rt: sideRightTexture,
+            side_btm: sideBottomTexture,
+            side_lt: sideLeftTexture,
             crn_in_top_lt: innerTopLeftTexture,
+            crn_in_top_rt: innerTopRightTexture,
+            crn_in_btm_lt: innerBottomLeftTexture,
+            crn_in_btm_rt: innerBottomRightTexture,
             crn_out_top_lt: outerTopLeftTexture,
-        });
-    }, [baseTexture, innerTopLeftTexture, outerTopLeftTexture, sideTopTexture]);
+            crn_out_top_rt: outerTopRightTexture,
+            crn_out_btm_lt: outerBottomLeftTexture,
+            crn_out_btm_rt: outerBottomRightTexture,
+        };
+
+        return getAdvancedConnectedTextureMissingInputs(inputs);
+    }, [
+        baseTexture,
+        innerBottomLeftTexture,
+        innerBottomRightTexture,
+        innerTopLeftTexture,
+        innerTopRightTexture,
+        outerBottomLeftTexture,
+        outerBottomRightTexture,
+        outerTopLeftTexture,
+        outerTopRightTexture,
+        sideBottomTexture,
+        sideLeftTexture,
+        sideRightTexture,
+        sideTopTexture,
+    ]);
 
     React.useEffect(() => {
         if (missingInputs.length > 0) {
@@ -141,11 +193,20 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
         }
 
         try {
-            const nextTexture = generateConnectedTexture({
+            const nextTexture = generateAdvancedConnectedTexture({
                 texture: baseTexture,
                 side_top: sideTopTexture,
+                side_rt: sideRightTexture,
+                side_btm: sideBottomTexture,
+                side_lt: sideLeftTexture,
                 crn_in_top_lt: innerTopLeftTexture,
+                crn_in_top_rt: innerTopRightTexture,
+                crn_in_btm_lt: innerBottomLeftTexture,
+                crn_in_btm_rt: innerBottomRightTexture,
                 crn_out_top_lt: outerTopLeftTexture,
+                crn_out_top_rt: outerTopRightTexture,
+                crn_out_btm_lt: outerBottomLeftTexture,
+                crn_out_btm_rt: outerBottomRightTexture,
             }, mode);
 
             if (
@@ -160,7 +221,7 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
         } catch (generationError) {
             const message = generationError instanceof Error
                 ? generationError.message
-                : "Could not generate connected textures.";
+                : "Could not generate advanced connected textures.";
 
             setNode(id, { texture: null, outputTextures: {}, error: message });
         }
@@ -169,22 +230,31 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
         error,
         id,
         isCleared,
+        innerBottomLeftTexture,
+        innerBottomRightTexture,
         innerTopLeftTexture,
+        innerTopRightTexture,
         missingInputs.length,
         mode,
+        outerBottomLeftTexture,
+        outerBottomRightTexture,
         outerTopLeftTexture,
-        outputTextures,
+        outerTopRightTexture,
+        outputTextureCount,
         setNode,
+        sideBottomTexture,
+        sideLeftTexture,
+        sideRightTexture,
         sideTopTexture,
         texture,
     ]);
 
     return (
-        <BaseNode className="w-72">
+        <BaseNode className="w-80">
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Simple Connected Texture
+                    Advanced Connected Texture
                 </BaseNodeHeaderTitle>
                 <ButtonGroup>
                     <Button
@@ -201,7 +271,7 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                         <Select value={mode} onValueChange={(value) => setNode(id, { mode: value as TextureBlendMode })}>
-                            <SelectTrigger className="nodrag w-full" aria-label="Connected texture blend mode">
+                            <SelectTrigger className="nodrag w-full" aria-label="Advanced connected texture blend mode">
                                 <SelectValue placeholder="Select blend mode" />
                             </SelectTrigger>
                             <SelectContent alignItemWithTrigger={false}>
@@ -215,25 +285,30 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                             </SelectContent>
                         </Select>
 
+                        {missingInputs.length > 0 ? (
+                            <p>Missing: {missingInputs.map((input) => input.label).join(", ")}</p>
+                        ) : null}
                         {error && <p className="text-destructive">{error}</p>}
                     </div>
                 </div>
 
-                {CONNECTED_TEXTURE_HANDLES.map((entry) => (
-                    <div key={entry.handleId} className="relative text-xs text-secondary-foreground">
-                        <Handle
-                            type="target"
-                            position={Position.Left}
-                            id={entry.handleId}
-                            className="size-3! -left-3! bg-blue-500! border-blue-300!"
-                            data-type="texture"
-                        />
-                        {entry.label}
-                    </div>
-                ))}
+                <div className="flex flex-col gap-1">
+                    {ADVANCED_CONNECTED_TEXTURE_HANDLES.map((entry) => (
+                        <div key={entry.handleId} className="relative text-xs text-secondary-foreground">
+                            <Handle
+                                type="target"
+                                position={Position.Left}
+                                id={entry.handleId}
+                                className="size-3! -left-3! bg-blue-500! border-blue-300!"
+                                data-type="texture"
+                            />
+                            {entry.label}
+                        </div>
+                    ))}
+                </div>
 
                 {debug && (
-                    <div className="nodrag flex max-h-80 flex-col gap-1.5 overflow-auto pr-1">
+                    <div className="nodrag mt-4 flex max-h-80 flex-col gap-1.5 overflow-auto pr-1">
                         {CONNECTED_TEXTURE_OUTPUTS.map((output) => {
                             const outputTexture = outputTextures[output.handleId] ?? null;
 
@@ -270,4 +345,4 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
     );
 });
 
-ConnectedTextureNode.displayName = "ConnectedTextureNode";
+AdvancedConnectedTextureNode.displayName = "AdvancedConnectedTextureNode";
