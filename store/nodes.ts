@@ -136,8 +136,8 @@ export function getInitialNodeData(type: AppNodeType) {
       return {
         texture: null,
         error: null,
-        color: "#f97316",
-        cycles: 6,
+        color: "#ffffff",
+        cycles: 4,
         thickness: 1.25,
         phase: 0,
       }

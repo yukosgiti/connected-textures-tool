@@ -54,6 +54,24 @@ const SINE_PRESETS = [
     { label: "Triplet", amplitude: 0.5, offset: 0.5, cycles: 3, phasePi: -0.5 },
 ] as const;
 
+const SAWTOOTH_PRESETS = [
+    { label: "Ramp 0-1", amplitude: 0.5, offset: 0.5, cycles: 1, phasePi: 0 },
+    { label: "Ramp -1..1", amplitude: 1, offset: 0, cycles: 1, phasePi: 0 },
+    { label: "Double", amplitude: 0.5, offset: 0.5, cycles: 2, phasePi: 0 },
+] as const;
+
+const TRIANGLE_PRESETS = [
+    { label: "Bounce", amplitude: 0.5, offset: 0.5, cycles: 1, phasePi: 0 },
+    { label: "Centered", amplitude: 1, offset: 0, cycles: 1, phasePi: 0 },
+    { label: "Double", amplitude: 0.5, offset: 0.5, cycles: 2, phasePi: 0 },
+] as const;
+
+const SQUARE_PRESETS = [
+    { label: "Gate 0/1", amplitude: 0.5, offset: 0.5, cycles: 1, phasePi: 0 },
+    { label: "Pulse ±1", amplitude: 1, offset: 0, cycles: 1, phasePi: 0 },
+    { label: "Double", amplitude: 0.5, offset: 0.5, cycles: 2, phasePi: 0 },
+] as const;
+
 const RANDOM_PRESETS = [
     { label: "0..1", min: 0, max: 1 },
     { label: "-1..1", min: -1, max: 1 },
@@ -163,6 +181,84 @@ export const ValueNode = memo(({ id }: Props) => {
         );
     }, []);
 
+    const renderOscillatorControls = React.useCallback((options: {
+        amplitude: number;
+        offset: number;
+        cycles: number;
+        phasePi: number;
+        amplitudeKey: "sineAmplitude" | "sawtoothAmplitude" | "triangleAmplitude" | "squareAmplitude";
+        offsetKey: "sineOffset" | "sawtoothOffset" | "triangleOffset" | "squareOffset";
+        cyclesKey: "sineCycles" | "sawtoothCycles" | "triangleCycles" | "squareCycles";
+        phaseKey: "sinePhasePi" | "sawtoothPhasePi" | "trianglePhasePi" | "squarePhasePi";
+        presets: readonly { label: string; amplitude: number; offset: number; cycles: number; phasePi: number; }[];
+        resetValues: { amplitude: number; offset: number; cycles: number; phasePi: number; };
+    }) => {
+        return [
+            renderSlider("Amplitude", options.amplitude, 0, 2, 0.01, (value) => updateValueNode({ [options.amplitudeKey]: value } as Partial<Omit<ValueNodeData, "data">>)),
+            renderSlider("Offset", options.offset, -2, 2, 0.01, (value) => updateValueNode({ [options.offsetKey]: value } as Partial<Omit<ValueNodeData, "data">>)),
+            renderPresetButtons(SINE_CYCLE_PRESETS.map((cycles) => (
+                <Button
+                    key={`${options.cyclesKey}-${cycles}`}
+                    variant={options.cycles === cycles ? "default" : "outline"}
+                    className="nodrag px-1.5 text-[10px]"
+                    size="xs"
+                    onClick={() => updateValueNode({ [options.cyclesKey]: cycles } as Partial<Omit<ValueNodeData, "data">>)}
+                >
+                    {cycles}x
+                </Button>
+            )), `${options.cyclesKey}-presets`),
+            renderPresetButtons(SINE_PHASE_PRESETS.map((preset) => (
+                <Button
+                    key={`${options.phaseKey}-${preset.label}`}
+                    variant={Math.abs(options.phasePi - preset.value) < 0.001 ? "default" : "outline"}
+                    className="nodrag px-1.5 text-[10px]"
+                    size="xs"
+                    onClick={() => updateValueNode({ [options.phaseKey]: preset.value } as Partial<Omit<ValueNodeData, "data">>)}
+                >
+                    {preset.label}
+                </Button>
+            )), `${options.phaseKey}-presets`),
+            renderPresetButtons(options.presets.map((preset) => (
+                <Button
+                    key={preset.label}
+                    variant={
+                        Math.abs(options.amplitude - preset.amplitude) < 0.001
+                            && Math.abs(options.offset - preset.offset) < 0.001
+                            && options.cycles === preset.cycles
+                            && Math.abs(options.phasePi - preset.phasePi) < 0.001
+                            ? "default"
+                            : "outline"
+                    }
+                    className="nodrag px-1.5 text-[10px]"
+                    size="xs"
+                    onClick={() => updateValueNode({
+                        [options.amplitudeKey]: preset.amplitude,
+                        [options.offsetKey]: preset.offset,
+                        [options.cyclesKey]: preset.cycles,
+                        [options.phaseKey]: preset.phasePi,
+                    } as Partial<Omit<ValueNodeData, "data">>)}
+                >
+                    {preset.label}
+                </Button>
+            )), `${options.amplitudeKey}-wave-presets`),
+            <div className="col-span-2 flex justify-end" key={`${options.amplitudeKey}-reset`}>
+                <Button
+                    variant="outline"
+                    className="nodrag"
+                    size="sm"
+                    onClick={() => updateValueNode({
+                        [options.amplitudeKey]: options.resetValues.amplitude,
+                        [options.offsetKey]: options.resetValues.offset,
+                        [options.cyclesKey]: options.resetValues.cycles,
+                        [options.phaseKey]: options.resetValues.phasePi,
+                    } as Partial<Omit<ValueNodeData, "data">>)}
+                >
+                    Reset
+                </Button>
+            </div>,
+        ];
+    }, [renderPresetButtons, renderSlider, updateValueNode]);
+
     const modeControls = React.useMemo(() => {
         switch (nodeData.mode) {
             case "constant":
@@ -197,70 +293,77 @@ export const ValueNode = memo(({ id }: Props) => {
                     )), "linear-presets"),
                 ];
             case "sine":
-                return [
-                    renderSlider("Amplitude", nodeData.sineAmplitude, 0, 2, 0.01, (value) => updateValueNode({ sineAmplitude: value })),
-                    renderSlider("Offset", nodeData.sineOffset, -2, 2, 0.01, (value) => updateValueNode({ sineOffset: value })),
-                    renderPresetButtons(SINE_CYCLE_PRESETS.map((cycles) => (
-                        <Button
-                            key={`cycles-${cycles}`}
-                            variant={nodeData.sineCycles === cycles ? "default" : "outline"}
-                            className="nodrag px-1.5 text-[10px]"
-                            size="xs"
-                            onClick={() => updateValueNode({ sineCycles: cycles })}
-                        >
-                            {cycles}x
-                        </Button>
-                    )), "sine-cycles"),
-                    renderPresetButtons(SINE_PHASE_PRESETS.map((preset) => (
-                        <Button
-                            key={preset.label}
-                            variant={Math.abs(nodeData.sinePhasePi - preset.value) < 0.001 ? "default" : "outline"}
-                            className="nodrag px-1.5 text-[10px]"
-                            size="xs"
-                            onClick={() => updateValueNode({ sinePhasePi: preset.value })}
-                        >
-                            {preset.label}
-                        </Button>
-                    )), "sine-phase"),
-                    renderPresetButtons(SINE_PRESETS.map((preset) => (
-                        <Button
-                            key={preset.label}
-                            variant={
-                                Math.abs(nodeData.sineAmplitude - preset.amplitude) < 0.001
-                                    && Math.abs(nodeData.sineOffset - preset.offset) < 0.001
-                                    && nodeData.sineCycles === preset.cycles
-                                    && Math.abs(nodeData.sinePhasePi - preset.phasePi) < 0.001
-                                    ? "default"
-                                    : "outline"
-                            }
-                            className="nodrag px-1.5 text-[10px]"
-                            size="xs"
-                            onClick={() => updateValueNode({
-                                sineAmplitude: preset.amplitude,
-                                sineOffset: preset.offset,
-                                sineCycles: preset.cycles,
-                                sinePhasePi: preset.phasePi,
-                            })}
-                        >
-                            {preset.label}
-                        </Button>
-                    )), "sine-presets"),
-                    <div className="col-span-2 flex justify-end" key="sine-reset">
-                        <Button
-                            variant="outline"
-                            className="nodrag"
-                            size="sm"
-                            onClick={() => updateValueNode({
-                                sineAmplitude: DEFAULT_VALUE_NODE_CONFIG.sineAmplitude,
-                                sineCycles: DEFAULT_VALUE_NODE_CONFIG.sineCycles,
-                                sinePhasePi: DEFAULT_VALUE_NODE_CONFIG.sinePhasePi,
-                                sineOffset: DEFAULT_VALUE_NODE_CONFIG.sineOffset,
-                            })}
-                        >
-                            Reset
-                        </Button>
-                    </div>,
-                ];
+                return renderOscillatorControls({
+                    amplitude: nodeData.sineAmplitude,
+                    offset: nodeData.sineOffset,
+                    cycles: nodeData.sineCycles,
+                    phasePi: nodeData.sinePhasePi,
+                    amplitudeKey: "sineAmplitude",
+                    offsetKey: "sineOffset",
+                    cyclesKey: "sineCycles",
+                    phaseKey: "sinePhasePi",
+                    presets: SINE_PRESETS,
+                    resetValues: {
+                        amplitude: DEFAULT_VALUE_NODE_CONFIG.sineAmplitude,
+                        offset: DEFAULT_VALUE_NODE_CONFIG.sineOffset,
+                        cycles: DEFAULT_VALUE_NODE_CONFIG.sineCycles,
+                        phasePi: DEFAULT_VALUE_NODE_CONFIG.sinePhasePi,
+                    },
+                });
+            case "sawtooth":
+                return renderOscillatorControls({
+                    amplitude: nodeData.sawtoothAmplitude,
+                    offset: nodeData.sawtoothOffset,
+                    cycles: nodeData.sawtoothCycles,
+                    phasePi: nodeData.sawtoothPhasePi,
+                    amplitudeKey: "sawtoothAmplitude",
+                    offsetKey: "sawtoothOffset",
+                    cyclesKey: "sawtoothCycles",
+                    phaseKey: "sawtoothPhasePi",
+                    presets: SAWTOOTH_PRESETS,
+                    resetValues: {
+                        amplitude: DEFAULT_VALUE_NODE_CONFIG.sawtoothAmplitude,
+                        offset: DEFAULT_VALUE_NODE_CONFIG.sawtoothOffset,
+                        cycles: DEFAULT_VALUE_NODE_CONFIG.sawtoothCycles,
+                        phasePi: DEFAULT_VALUE_NODE_CONFIG.sawtoothPhasePi,
+                    },
+                });
+            case "triangle":
+                return renderOscillatorControls({
+                    amplitude: nodeData.triangleAmplitude,
+                    offset: nodeData.triangleOffset,
+                    cycles: nodeData.triangleCycles,
+                    phasePi: nodeData.trianglePhasePi,
+                    amplitudeKey: "triangleAmplitude",
+                    offsetKey: "triangleOffset",
+                    cyclesKey: "triangleCycles",
+                    phaseKey: "trianglePhasePi",
+                    presets: TRIANGLE_PRESETS,
+                    resetValues: {
+                        amplitude: DEFAULT_VALUE_NODE_CONFIG.triangleAmplitude,
+                        offset: DEFAULT_VALUE_NODE_CONFIG.triangleOffset,
+                        cycles: DEFAULT_VALUE_NODE_CONFIG.triangleCycles,
+                        phasePi: DEFAULT_VALUE_NODE_CONFIG.trianglePhasePi,
+                    },
+                });
+            case "square":
+                return renderOscillatorControls({
+                    amplitude: nodeData.squareAmplitude,
+                    offset: nodeData.squareOffset,
+                    cycles: nodeData.squareCycles,
+                    phasePi: nodeData.squarePhasePi,
+                    amplitudeKey: "squareAmplitude",
+                    offsetKey: "squareOffset",
+                    cyclesKey: "squareCycles",
+                    phaseKey: "squarePhasePi",
+                    presets: SQUARE_PRESETS,
+                    resetValues: {
+                        amplitude: DEFAULT_VALUE_NODE_CONFIG.squareAmplitude,
+                        offset: DEFAULT_VALUE_NODE_CONFIG.squareOffset,
+                        cycles: DEFAULT_VALUE_NODE_CONFIG.squareCycles,
+                        phasePi: DEFAULT_VALUE_NODE_CONFIG.squarePhasePi,
+                    },
+                });
             case "random":
                 return [
                     renderSlider("Min", nodeData.randomMin, -2, 2, 0.01, (value) => updateValueNode({ randomMin: value })),
@@ -288,7 +391,7 @@ export const ValueNode = memo(({ id }: Props) => {
                     </div>,
                 ];
         }
-    }, [nodeData, renderPresetButtons, renderSlider, updateValueNode]);
+    }, [nodeData, renderOscillatorControls, renderPresetButtons, renderSlider, updateValueNode]);
 
     const previewGraph = React.useMemo(() => {
         const chartDomain: [number, number] = [graphRange.minimum, graphRange.maximum];
@@ -355,6 +458,27 @@ export const ValueNode = memo(({ id }: Props) => {
             );
         }
 
+        const lineType = nodeData.mode === "square"
+            ? "stepAfter"
+            : nodeData.mode === "linear" || nodeData.mode === "sawtooth" || nodeData.mode === "triangle"
+                ? "linear"
+                : "monotone";
+
+        const oscillatorPhase = nodeData.mode === "sine"
+            ? nodeData.sinePhasePi
+            : nodeData.mode === "sawtooth"
+                ? nodeData.sawtoothPhasePi
+                : nodeData.mode === "triangle"
+                    ? nodeData.trianglePhasePi
+                    : nodeData.squarePhasePi;
+        const oscillatorCycles = nodeData.mode === "sine"
+            ? nodeData.sineCycles
+            : nodeData.mode === "sawtooth"
+                ? nodeData.sawtoothCycles
+                : nodeData.mode === "triangle"
+                    ? nodeData.triangleCycles
+                    : nodeData.squareCycles;
+
         return (
             <div className={`relative ${CHART_HEIGHT_CLASS} nodrag w-full overflow-hidden rounded-xl border bg-secondary/20 p-2 text-primary`}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -366,7 +490,7 @@ export const ValueNode = memo(({ id }: Props) => {
                         <Tooltip {...commonTooltipProps} />
                         <Legend {...commonLegendProps} />
                         <Line
-                            type={nodeData.mode === "linear" ? "linear" : "monotone"}
+                            type={lineType}
                             dataKey="value"
                             name="Value"
                             stroke="currentColor"
@@ -377,14 +501,14 @@ export const ValueNode = memo(({ id }: Props) => {
                         />
                     </LineChart>
                 </ResponsiveContainer>
-                {nodeData.mode === "sine" && (
+                {(nodeData.mode === "sine" || nodeData.mode === "sawtooth" || nodeData.mode === "triangle" || nodeData.mode === "square") && (
                     <div className="absolute right-3 bottom-3 rounded-full border bg-background/90 px-2 py-0.5 text-[10px] text-muted-foreground">
-                        {nodeData.sineCycles}x, {nodeData.sinePhasePi}π
+                        {oscillatorCycles}x, {oscillatorPhase}π
                     </div>
                 )}
             </div>
         );
-    }, [chartData, graphRange.maximum, graphRange.minimum, nodeData.mode, nodeData.sineCycles, nodeData.sinePhasePi, xAxisTicks, yAxisTicks]);
+    }, [chartData, graphRange.maximum, graphRange.minimum, nodeData.mode, nodeData.sawtoothCycles, nodeData.sawtoothPhasePi, nodeData.sineCycles, nodeData.sinePhasePi, nodeData.squareCycles, nodeData.squarePhasePi, nodeData.triangleCycles, nodeData.trianglePhasePi, xAxisTicks, yAxisTicks]);
 
 
     return (

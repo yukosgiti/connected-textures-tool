@@ -14,7 +14,8 @@ export const RadialWaveTextureNode = memo(({ id }: Props) => {
             id={id}
             kind="radial"
             title="Radial Wave Texture"
-            defaultCycles={6}
+            defaultColor="#ffffff"
+            defaultCycles={4}
             defaultAmplitude={0}
             defaultThickness={1.25}
             defaultPhase={0}

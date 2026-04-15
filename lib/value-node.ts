@@ -4,6 +4,9 @@ export const VALUE_MODE_LABELS = {
   constant: "Constant",
   linear: "Linear",
   sine: "Sinus",
+  sawtooth: "Saw",
+  triangle: "Triangle",
+  square: "Square",
   random: "Random",
 } as const;
 
@@ -19,6 +22,18 @@ export type ValueNodeData = {
   sineCycles: number;
   sinePhasePi: number;
   sineOffset: number;
+  sawtoothAmplitude: number;
+  sawtoothCycles: number;
+  sawtoothPhasePi: number;
+  sawtoothOffset: number;
+  triangleAmplitude: number;
+  triangleCycles: number;
+  trianglePhasePi: number;
+  triangleOffset: number;
+  squareAmplitude: number;
+  squareCycles: number;
+  squarePhasePi: number;
+  squareOffset: number;
   randomSeed: number;
   randomMin: number;
   randomMax: number;
@@ -33,6 +48,18 @@ export const DEFAULT_VALUE_NODE_CONFIG = {
   sineCycles: 1,
   sinePhasePi: -0.5,
   sineOffset: 0.5,
+  sawtoothAmplitude: 0.5,
+  sawtoothCycles: 1,
+  sawtoothPhasePi: 0,
+  sawtoothOffset: 0.5,
+  triangleAmplitude: 0.5,
+  triangleCycles: 1,
+  trianglePhasePi: 0,
+  triangleOffset: 0.5,
+  squareAmplitude: 0.5,
+  squareCycles: 1,
+  squarePhasePi: 0,
+  squareOffset: 0.5,
   randomSeed: 1,
   randomMin: 0,
   randomMax: 1,
@@ -60,6 +87,14 @@ function getLoopFrameRatio(index: number) {
   return FRAMES <= 0 ? 0 : index / FRAMES;
 }
 
+function getOscillatorPosition(index: number, cycles: number, phasePi: number) {
+  const x = getLoopFrameRatio(index);
+  const phaseTurns = phasePi / 2;
+  const rawPosition = (x * cycles) + phaseTurns;
+
+  return ((rawPosition % 1) + 1) % 1;
+}
+
 export function generateValueFrames(config: ValueNodeConfig) {
   switch (config.mode) {
     case "constant":
@@ -73,6 +108,27 @@ export function generateValueFrames(config: ValueNodeConfig) {
       return new Array(FRAMES).fill(0).map((_, index) => {
         const x = getLoopFrameRatio(index);
         return config.sineOffset + config.sineAmplitude * Math.sin((x * config.sineCycles * Math.PI * 2) + (config.sinePhasePi * Math.PI));
+      });
+    case "sawtooth":
+      return new Array(FRAMES).fill(0).map((_, index) => {
+        const position = getOscillatorPosition(index, config.sawtoothCycles, config.sawtoothPhasePi);
+        const wave = (position * 2) - 1;
+
+        return config.sawtoothOffset + (config.sawtoothAmplitude * wave);
+      });
+    case "triangle":
+      return new Array(FRAMES).fill(0).map((_, index) => {
+        const position = getOscillatorPosition(index, config.triangleCycles, config.trianglePhasePi);
+        const wave = 1 - (4 * Math.abs(position - 0.5));
+
+        return config.triangleOffset + (config.triangleAmplitude * wave);
+      });
+    case "square":
+      return new Array(FRAMES).fill(0).map((_, index) => {
+        const position = getOscillatorPosition(index, config.squareCycles, config.squarePhasePi);
+        const wave = position < 0.5 ? 1 : -1;
+
+        return config.squareOffset + (config.squareAmplitude * wave);
       });
     case "random": {
       const rng = createRng(config.randomSeed);
