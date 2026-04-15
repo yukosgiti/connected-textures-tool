@@ -49,6 +49,22 @@ function createCoordinateTexture(width = 5, height = 5) {
   })
 }
 
+function createHorizontalStripTexture() {
+  return createTexture({
+    width: 5,
+    frameSize: 1,
+    frames: [
+      createFrame(
+        rgba(255, 0, 0, 255),
+        rgba(255, 128, 0, 255),
+        rgba(255, 255, 0, 255),
+        rgba(0, 255, 0, 255),
+        rgba(0, 0, 255, 255)
+      ),
+    ],
+  })
+}
+
 function expectFramesToDiffer(
   left: Uint8ClampedArray,
   right: Uint8ClampedArray
@@ -114,7 +130,9 @@ describe("texture transforms", () => {
 
     expect(getPixel(magnified, 5, 2, 2)).toEqual(getPixel(original, 5, 2, 2))
     expect(getPixel(magnified, 5, 0, 2)).toEqual(getPixel(original, 5, 1, 2))
-    expect(getPixel(shrunken, 5, 4, 2)).toEqual(getPixel(original, 5, 0, 2))
+    expect(getPixel(magnified, 5, 4, 2)).toEqual(getPixel(original, 5, 3, 2))
+    expect(getPixel(shrunken, 5, 0, 2)).toEqual(getPixel(original, 5, 0, 2))
+    expect(getPixel(shrunken, 5, 4, 2)).toEqual(getPixel(original, 5, 4, 2))
   })
 
   it("extends magnify and shrink across the full texture", () => {
@@ -126,7 +144,14 @@ describe("texture transforms", () => {
     expectFramesToDiffer(magnified, original)
     expectFramesToDiffer(shrunken, original)
     expect(getPixel(magnified, 5, 2, 0)).not.toEqual(getPixel(original, 5, 2, 0))
-    expect(getPixel(shrunken, 5, 2, 0)).not.toEqual(getPixel(original, 5, 2, 0))
+    expect(getPixel(shrunken, 5, 1, 0)).not.toEqual(getPixel(original, 5, 1, 0))
+  })
+
+  it("does not wrap magnify sampling across opposite edges", () => {
+    const texture = createHorizontalStripTexture()
+    const frame = getFramePixels(magnifyTexture(texture, [1]))
+
+    expect(getPixel(frame, 5, 0, 0)).not.toEqual([0, 0, 255, 255])
   })
 
   it("flips texture horizontally", () => {

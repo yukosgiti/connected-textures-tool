@@ -1,5 +1,5 @@
 import { type SerializedTextureData } from "./types"
-import { createDerivedTexture, samplePixel } from "./internal"
+import { createDerivedTexture, sampleClampedPixel } from "./internal"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 
 function clamp(value: number, min: number, max: number) {
@@ -35,7 +35,7 @@ export function magnifyTexture(
         const localScale = Math.max(0.05, 1 + strength * influence)
         const sourceRadius = radius / localScale
         const radiusScale = radius <= 0 ? 0 : sourceRadius / radius
-        const sample = samplePixel(
+        const sample = sampleClampedPixel(
           sourcePixels,
           width,
           height,
