@@ -85,8 +85,8 @@ function renderFrameNumber(
   frameStart: number,
   frameNumber: number
 ) {
-  const text = `${frameNumber}`
-  const scale = text.length === 1 ? 3 : 2
+  const text = formatCountingFrameNumber(frameNumber)
+  const scale = 2
   const glyphWidth = 3
   const glyphHeight = 5
   const gap = scale
@@ -107,6 +107,10 @@ function renderFrameNumber(
       scale
     )
   }
+}
+
+export function formatCountingFrameNumber(frameNumber: number) {
+  return `${frameNumber}`.padStart(2, "0")
 }
 
 export function createCountingTexture(name = "counting-texture") {

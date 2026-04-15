@@ -1,8 +1,19 @@
 import { FRAMES } from "@/lib/utils"
-import { createCountingTexture, getTextureFramePixels } from "@/lib/texture"
+import {
+  createCountingTexture,
+  formatCountingFrameNumber,
+  getTextureFramePixels,
+} from "@/lib/texture"
 import { describe, expect, it } from "vitest"
 
 describe("counting texture", () => {
+  it("formats frame labels with leading zeroes", () => {
+    expect(formatCountingFrameNumber(1)).toBe("01")
+    expect(formatCountingFrameNumber(2)).toBe("02")
+    expect(formatCountingFrameNumber(10)).toBe("10")
+    expect(formatCountingFrameNumber(FRAMES)).toBe(`${FRAMES}`.padStart(2, "0"))
+  })
+
   it("creates one frame per global frame and starts at 1", () => {
     const texture = createCountingTexture()
 
