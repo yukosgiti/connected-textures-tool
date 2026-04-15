@@ -52,6 +52,7 @@ const NODE_SUBMENU_GROUPS: Array<{ label: string; types: AppNodeType[] }> = [
       "radialGradientTexture",
       "sineWaveTexture",
       "squareWaveTexture",
+      "radialWaveTexture",
     ],
   },
 
@@ -124,6 +125,7 @@ const NODE_TYPE_ICONS: Record<AppNodeType, typeof Image01FreeIcons> = {
   radialGradientTexture: Image01FreeIcons,
   sineWaveTexture: Image01FreeIcons,
   squareWaveTexture: Image01FreeIcons,
+  radialWaveTexture: Image01FreeIcons,
   connectedTexture: Image01FreeIcons,
   connectedTextureSplit: Image01FreeIcons,
   connectedTexturePack: Image01FreeIcons,

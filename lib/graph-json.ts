@@ -124,6 +124,13 @@ function getPersistentNodeData(type: AppNodeType, data: JsonRecord) {
         "thickness",
         "phase",
       ])
+    case "radialWaveTexture":
+      return pickDefinedValues(data, [
+        "color",
+        "cycles",
+        "thickness",
+        "phase",
+      ])
     case "connectedTexture":
       return pickDefinedValues(data, ["debug"])
     case "connectedTextureSplit":

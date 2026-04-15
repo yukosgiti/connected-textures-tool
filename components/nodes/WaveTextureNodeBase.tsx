@@ -39,6 +39,7 @@ type Props = {
     defaultAmplitude?: number
     defaultThickness?: number
     defaultPhase?: number
+    showAmplitude?: boolean
 }
 
 type WaveTextureNodeData = {
@@ -67,6 +68,7 @@ export const WaveTextureNodeBase = memo(
         defaultAmplitude = 5,
         defaultThickness = 2,
         defaultPhase = 0,
+        showAmplitude = true,
     }: Props) => {
         const node = useNodeData(id)
         const setNode = useStore((store) => store.setNode)
@@ -301,36 +303,37 @@ export const WaveTextureNodeBase = memo(
                                 />
                             </div>
                         )}
-                        {hasAmplitudeInput ? (
-                            <div className="relative text-xs text-secondary-foreground">
-                                <Handle
-                                    type="target"
-                                    position={Position.Left}
-                                    id="inputAmplitude"
-                                    className="-left-3! size-3! border-orange-300! bg-orange-500!"
-                                    data-type="value"
-                                />
-                                Amplitude
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                <Handle
-                                    type="target"
-                                    position={Position.Left}
-                                    id="inputAmplitude"
-                                    className="top-1/2! -left-3! size-3! -translate-y-1/2 border-orange-300! bg-orange-500!"
-                                    data-type="value"
-                                />
-                                <ValueFallbackSlider
-                                    label="Amplitude"
-                                    value={amplitude}
-                                    min={0}
-                                    max={7.5}
-                                    step={0.25}
-                                    onChange={(value) => setNode(id, { amplitude: value })}
-                                />
-                            </div>
-                        )}
+                        {showAmplitude &&
+                            (hasAmplitudeInput ? (
+                                <div className="relative text-xs text-secondary-foreground">
+                                    <Handle
+                                        type="target"
+                                        position={Position.Left}
+                                        id="inputAmplitude"
+                                        className="-left-3! size-3! border-orange-300! bg-orange-500!"
+                                        data-type="value"
+                                    />
+                                    Amplitude
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    <Handle
+                                        type="target"
+                                        position={Position.Left}
+                                        id="inputAmplitude"
+                                        className="top-1/2! -left-3! size-3! -translate-y-1/2 border-orange-300! bg-orange-500!"
+                                        data-type="value"
+                                    />
+                                    <ValueFallbackSlider
+                                        label="Amplitude"
+                                        value={amplitude}
+                                        min={0}
+                                        max={7.5}
+                                        step={0.25}
+                                        onChange={(value) => setNode(id, { amplitude: value })}
+                                    />
+                                </div>
+                            ))}
                         {hasThicknessInput ? (
                             <div className="relative text-xs text-secondary-foreground">
                                 <Handle

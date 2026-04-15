@@ -30,6 +30,7 @@ import { PhaseTextureNode } from "@/components/nodes/PhaseTextureNode"
 import { PingPongTextureNode } from "@/components/nodes/PingPongTextureNode"
 import { RandomTextureNode } from "@/components/nodes/RandomTextureNode"
 import { RadialGradientTextureNode } from "@/components/nodes/RadialGradientTextureNode"
+import { RadialWaveTextureNode } from "@/components/nodes/RadialWaveTextureNode"
 import { ReverseTextureNode } from "@/components/nodes/ReverseTextureNode"
 import { ScaleTextureNode } from "@/components/nodes/ScaleTextureNode"
 import { SelectTextureNode } from "@/components/nodes/SelectTextureNode"
@@ -227,6 +228,7 @@ const useStore = create<AppState>((set, get) => ({
     radialGradientTexture: RadialGradientTextureNode,
     sineWaveTexture: SineWaveTextureNode,
     squareWaveTexture: SquareWaveTextureNode,
+    radialWaveTexture: RadialWaveTextureNode,
     connectedTexture: ConnectedTextureNode,
     connectedTextureSplit: ConnectedTextureSplitNode,
     connectedTexturePack: ConnectedTexturePackNode,

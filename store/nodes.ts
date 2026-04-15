@@ -12,6 +12,7 @@ export const NODE_TYPE_LABELS = {
   radialGradientTexture: "Radial Gradient Texture",
   sineWaveTexture: "Sine Wave Texture",
   squareWaveTexture: "Square Wave Texture",
+  radialWaveTexture: "Radial Wave Texture",
   connectedTexture: "Connected Texture",
   connectedTextureSplit: "Connected Texture Split",
   connectedTexturePack: "Textures To Connected Texture",
@@ -129,6 +130,15 @@ export function getInitialNodeData(type: AppNodeType) {
         cycles: 1,
         amplitude: 5,
         thickness: 2,
+        phase: 0,
+      }
+    case "radialWaveTexture":
+      return {
+        texture: null,
+        error: null,
+        color: "#f97316",
+        cycles: 6,
+        thickness: 1.25,
         phase: 0,
       }
     case "connectedTexture":

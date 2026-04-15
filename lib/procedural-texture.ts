@@ -11,6 +11,7 @@ export const RANDOM_TEXTURE_MODE_LABELS = {
 export const WAVE_TEXTURE_KIND_LABELS = {
   sine: "Sine Wave",
   square: "Square Wave",
+  radial: "Radial Wave",
 } as const
 
 export type RandomTextureMode = keyof typeof RANDOM_TEXTURE_MODE_LABELS
@@ -165,6 +166,17 @@ function renderWaveFrame(
   thickness: number,
   phase: number
 ) {
+  if (kind === "radial") {
+    return renderRadialWaveFrame(
+      red,
+      green,
+      blue,
+      cycles,
+      thickness,
+      phase
+    )
+  }
+
   const safeCycles = clamp(cycles, 0.25, 8)
   const safeAmplitude = clamp(amplitude, 0, (SIZE - 1) / 2)
   const safeThickness = clamp(thickness, 1, SIZE)
@@ -187,6 +199,49 @@ function renderWaveFrame(
       }
 
       if (minDistance > radius) {
+        continue
+      }
+
+      const pixelOffset = (y * SIZE + x) * 4
+      framePixels[pixelOffset] = red
+      framePixels[pixelOffset + 1] = green
+      framePixels[pixelOffset + 2] = blue
+      framePixels[pixelOffset + 3] = 255
+    }
+  }
+
+  return framePixels
+}
+
+function wrapPositive(value: number, size: number) {
+  return ((value % size) + size) % size
+}
+
+function renderRadialWaveFrame(
+  red: number,
+  green: number,
+  blue: number,
+  cycles: number,
+  thickness: number,
+  phase: number
+) {
+  const safeCycles = clamp(cycles, 0.25, 16)
+  const safeThickness = clamp(thickness, 0.5, SIZE / 2)
+  const safePhase = clamp(phase, -1, 1)
+  const center = (SIZE - 1) / 2
+  const maxRadius = Math.hypot(center, center)
+  const ringSpacing = maxRadius / safeCycles
+  const phaseOffset = safePhase * ringSpacing
+  const lineRadius = Math.max(safeThickness / 2, 0.5)
+  const framePixels = new Uint8ClampedArray(SIZE * SIZE * 4)
+
+  for (let y = 0; y < SIZE; y += 1) {
+    for (let x = 0; x < SIZE; x += 1) {
+      const distance = Math.hypot(x - center, y - center)
+      const shiftedDistance = wrapPositive(distance + phaseOffset, ringSpacing)
+      const distanceToRing = Math.min(shiftedDistance, ringSpacing - shiftedDistance)
+
+      if (distanceToRing > lineRadius) {
         continue
       }
 
