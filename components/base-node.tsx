@@ -6,7 +6,7 @@ export function BaseNode({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "bg-card text-card-foreground relative rounded-md border",
+        "bg-card text-card-foreground relative rounded-md border shadow",
         "hover:ring-1",
         // React Flow displays node elements inside of a `NodeWrapper`
         // component, which compiles down to a div with the class
@@ -17,6 +17,7 @@ export function BaseNode({ className, ...props }: ComponentProps<"div">) {
         "in-[.selected]:shadow-lg",
         className,
       )}
+
       tabIndex={0}
       {...props}
     />
@@ -35,7 +36,7 @@ export function BaseNodeHeader({
     <header
       {...props}
       className={cn(
-        "mx-0 my-0 -mb-1 flex flex-row items-center justify-between gap-2 px-1 w-full bg-secondary rounded-t-md",
+        "mx-0 my-0 -mb-1 flex flex-row items-center justify-between gap-2 px-1 w-full bg-secondary rounded-t-md shadow",
         // Remove or modify these classes if you modify the padding in the
         // `<BaseNode />` component.
         className,

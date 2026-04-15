@@ -113,7 +113,7 @@ export const HslTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Adjust HSL
+                    HSL
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>

@@ -90,7 +90,7 @@ export const ContrastTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Adjust Contrast
+                    Contrast
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>

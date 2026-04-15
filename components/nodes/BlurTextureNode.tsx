@@ -98,7 +98,7 @@ export const BlurTextureNode = memo(({ id }: Props) => {
             <BaseNodeHeader>
                 <BaseNodeHeaderTitle>
                     <HugeiconsIcon icon={Image01FreeIcons} />
-                    Apply Blur
+                    Blur
                 </BaseNodeHeaderTitle>
             </BaseNodeHeader>
             <BaseNodeContent>
