@@ -11,6 +11,7 @@ import {
 import { EmptyTexture, TexturePreview } from "@/components/EmptyTexture";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -23,10 +24,12 @@ import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
 import { withBasePath } from "@/lib/base-path";
 import {
     CONNECTED_TEXTURE_BLEND_MODE_LABELS,
+    CONNECTED_TEXTURE_CORNER_ALPHA_MODE_LABELS,
     CONNECTED_TEXTURE_OUTPUT_HANDLE_ID,
     CONNECTED_TEXTURE_OUTPUTS,
     generateConnectedTexture,
-    getConnectedTextureMissingInputs
+    getConnectedTextureMissingInputs,
+    type ConnectedTextureCornerAlphaMode,
 } from "@/lib/connected-texture";
 import { type SerializedTextureData, type TextureBlendMode } from "@/lib/texture";
 import useStore from "@/store/graph";
@@ -46,6 +49,7 @@ type ConnectedTextureNodeData = {
     error?: string | null;
     debug?: boolean;
     mode?: TextureBlendMode;
+    overrideCornerTransparency?: boolean;
 };
 
 type TextureNodeData = {
@@ -91,6 +95,7 @@ const CONNECTED_TEXTURE_HANDLES = [
 ] as const;
 
 const DEFAULT_BLEND_MODE: TextureBlendMode = "normal";
+const DEFAULT_CORNER_ALPHA_MODE: ConnectedTextureCornerAlphaMode = "blend";
 
 export const ConnectedTextureNode = memo(({ id }: Props) => {
     const node = useNodeData(id);
@@ -121,6 +126,8 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
     const isCleared = texture === null && error === null && Object.keys(outputTextures).length === 0;
     const debug = nodeData.debug ?? false;
     const mode = nodeData.mode ?? DEFAULT_BLEND_MODE;
+    const overrideCornerTransparency = nodeData.overrideCornerTransparency ?? false;
+    const cornerAlphaMode = overrideCornerTransparency ? "override" : DEFAULT_CORNER_ALPHA_MODE;
     const missingInputs = React.useMemo(() => {
         return getConnectedTextureMissingInputs({
             texture: baseTexture,
@@ -146,7 +153,7 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                 side_top: sideTopTexture,
                 crn_in_top_lt: innerTopLeftTexture,
                 crn_out_top_lt: outerTopLeftTexture,
-            }, mode);
+            }, mode, cornerAlphaMode);
 
             if (
                 error === null
@@ -172,6 +179,7 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
         innerTopLeftTexture,
         missingInputs.length,
         mode,
+        cornerAlphaMode,
         outerTopLeftTexture,
         outputTextures,
         setNode,
@@ -214,6 +222,17 @@ export const ConnectedTextureNode = memo(({ id }: Props) => {
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
+
+                        <label
+                            className="nodrag flex items-center gap-2 text-foreground"
+                            title="When enabled, transparent pixels in corner layers clear the texture below instead of revealing it."
+                        >
+                            <Checkbox
+                                checked={overrideCornerTransparency}
+                                onCheckedChange={(checked) => setNode(id, { overrideCornerTransparency: checked === true })}
+                            />
+                            <span>Corner: {CONNECTED_TEXTURE_CORNER_ALPHA_MODE_LABELS[cornerAlphaMode]}</span>
+                        </label>
 
                         {error && <p className="text-destructive">{error}</p>}
                     </div>

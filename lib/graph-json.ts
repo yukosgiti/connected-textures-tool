@@ -146,7 +146,7 @@ function getPersistentNodeData(type: AppNodeType, data: JsonRecord) {
       ])
     case "connectedTexture":
     case "advancedConnectedTexture":
-      return pickDefinedValues(data, ["debug", "mode"])
+      return pickDefinedValues(data, ["debug", "mode", "overrideCornerTransparency"])
     case "connectedTextureSplit":
     case "connectedTexturePack":
     case "reverseTexture":

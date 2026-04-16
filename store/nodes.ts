@@ -159,6 +159,7 @@ export function getInitialNodeData(type: AppNodeType) {
         error: null,
         debug: false,
         mode: "normal",
+        overrideCornerTransparency: false,
       }
     case "advancedConnectedTexture":
       return {
@@ -167,6 +168,7 @@ export function getInitialNodeData(type: AppNodeType) {
         error: null,
         debug: false,
         mode: "normal",
+        overrideCornerTransparency: false,
       }
     case "connectedTextureSplit":
       return { texture: null, outputTextures: {}, error: null }

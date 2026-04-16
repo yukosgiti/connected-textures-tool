@@ -74,7 +74,13 @@ export type ConnectedTextureData = {
   outputTextures: ConnectedTextureOutputTextures;
 };
 
+export type ConnectedTextureCornerAlphaMode = "blend" | "override";
+
 export const CONNECTED_TEXTURE_BLEND_MODE_LABELS = TEXTURE_BLEND_MODE_LABELS;
+export const CONNECTED_TEXTURE_CORNER_ALPHA_MODE_LABELS: Record<ConnectedTextureCornerAlphaMode, string> = {
+  blend: "Reveal Below",
+  override: "Clear Below",
+};
 
 const manifest = connectedTextureManifest as ConnectedTextureManifest;
 
@@ -328,6 +334,110 @@ function compositeWithBlendMode(
   }
 }
 
+function getOpaqueBounds(pixels: Uint8ClampedArray, size: number) {
+  let minX = size;
+  let minY = size;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const alpha = pixels[(y * size + x) * 4 + 3];
+
+      if (alpha <= 0) {
+        continue;
+      }
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  return { minX, minY, maxX, maxY };
+}
+
+function compositeCornerOverride(
+  target: Uint8ClampedArray,
+  base: Uint8ClampedArray,
+  overlay: Uint8ClampedArray,
+  mode: TextureBlendMode,
+  size: number,
+) {
+  const bounds = getOpaqueBounds(overlay, size);
+
+  if (!bounds) {
+    return;
+  }
+
+  for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
+    for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
+      const index = (y * size + x) * 4;
+      const sourceAlpha = overlay[index + 3] / 255;
+
+      if (sourceAlpha <= 0) {
+        target[index] = base[index];
+        target[index + 1] = base[index + 1];
+        target[index + 2] = base[index + 2];
+        target[index + 3] = base[index + 3];
+        continue;
+      }
+
+      const targetAlpha = base[index + 3] / 255;
+      const outAlpha = sourceAlpha + targetAlpha * (1 - sourceAlpha);
+
+      if (outAlpha <= 0) {
+        target[index] = 0;
+        target[index + 1] = 0;
+        target[index + 2] = 0;
+        target[index + 3] = 0;
+        continue;
+      }
+
+      const sourceRed = overlay[index] / 255;
+      const sourceGreen = overlay[index + 1] / 255;
+      const sourceBlue = overlay[index + 2] / 255;
+      const targetRed = base[index] / 255;
+      const targetGreen = base[index + 1] / 255;
+      const targetBlue = base[index + 2] / 255;
+
+      const mergedRed = mode === "normal" ? sourceRed : blendChannel(targetRed, sourceRed, mode);
+      const mergedGreen = mode === "normal" ? sourceGreen : blendChannel(targetGreen, sourceGreen, mode);
+      const mergedBlue = mode === "normal" ? sourceBlue : blendChannel(targetBlue, sourceBlue, mode);
+
+      const outRed =
+        outAlpha === 0
+          ? 0
+          : ((1 - sourceAlpha) * targetRed * targetAlpha + sourceAlpha * mergedRed) /
+            outAlpha;
+      const outGreen =
+        outAlpha === 0
+          ? 0
+          : ((1 - sourceAlpha) * targetGreen * targetAlpha + sourceAlpha * mergedGreen) /
+            outAlpha;
+      const outBlue =
+        outAlpha === 0
+          ? 0
+          : ((1 - sourceAlpha) * targetBlue * targetAlpha + sourceAlpha * mergedBlue) /
+            outAlpha;
+
+      target[index] = Math.round(clampUnit(outRed) * 255);
+      target[index + 1] = Math.round(clampUnit(outGreen) * 255);
+      target[index + 2] = Math.round(clampUnit(outBlue) * 255);
+      target[index + 3] = Math.round(clampUnit(outAlpha) * 255);
+    }
+  }
+}
+
+function isCornerLayer(layerKey: ConnectedTextureAssetKey) {
+  return layerKey.startsWith("crn_");
+}
+
 function getRequiredInputTexture(inputs: ConnectedTextureInputs, key: ConnectedTextureInputKey) {
   const input = inputs[key];
 
@@ -553,6 +663,7 @@ function createResolvedConnectedTextureInputs(
   baseTexture: SerializedTextureData,
   resolvedInputs: Map<ConnectedTextureAssetKey, ConnectedTextureFrames>,
   mode: TextureBlendMode,
+  cornerAlphaMode: ConnectedTextureCornerAlphaMode,
 ) {
   const textureSize = baseTexture.frameSize;
   const textureFrames = baseTexture.frames;
@@ -578,6 +689,17 @@ function createResolvedConnectedTextureInputs(
           throw new Error(`Missing template layer: ${layerKey}.`);
         }
 
+        if (cornerAlphaMode === "override" && isCornerLayer(layerKey)) {
+          compositeCornerOverride(
+            framePixels,
+            baseFrames[frameIndex],
+            layerFrames[frameIndex],
+            mode,
+            textureSize,
+          );
+          continue;
+        }
+
         compositeWithBlendMode(framePixels, layerFrames[frameIndex], mode);
       }
 
@@ -598,6 +720,7 @@ function createResolvedConnectedTextureInputs(
 export function generateConnectedTexture(
   inputs: ConnectedTextureInputs,
   mode: TextureBlendMode = "normal",
+  cornerAlphaMode: ConnectedTextureCornerAlphaMode = "blend",
 ): ConnectedTextureData {
   const baseTexture = getRequiredInputTexture(inputs, "texture");
   const textureSize = baseTexture.frameSize;
@@ -633,7 +756,7 @@ export function generateConnectedTexture(
     );
   }
 
-  const outputTextures = createResolvedConnectedTextureInputs(baseTexture, resolvedInputs, mode);
+  const outputTextures = createResolvedConnectedTextureInputs(baseTexture, resolvedInputs, mode, cornerAlphaMode);
 
   return packConnectedTextureOutputs(outputTextures, `${baseTexture.name} (${mode} connected)`);
 }
@@ -641,6 +764,7 @@ export function generateConnectedTexture(
 export function generateAdvancedConnectedTexture(
   inputs: AdvancedConnectedTextureInputs,
   mode: TextureBlendMode = "normal",
+  cornerAlphaMode: ConnectedTextureCornerAlphaMode = "blend",
 ): ConnectedTextureData {
   const baseTexture = inputs.texture;
 
@@ -672,7 +796,7 @@ export function generateAdvancedConnectedTexture(
     resolvedInputs.set(inputMeta.key, createTextureFrames(inputTexture));
   }
 
-  const outputTextures = createResolvedConnectedTextureInputs(baseTexture, resolvedInputs, mode);
+  const outputTextures = createResolvedConnectedTextureInputs(baseTexture, resolvedInputs, mode, cornerAlphaMode);
 
   return packConnectedTextureOutputs(outputTextures, `${baseTexture.name} (${mode} advanced connected)`);
 }

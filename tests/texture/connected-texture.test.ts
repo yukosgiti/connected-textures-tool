@@ -581,6 +581,84 @@ describe("connected texture generation", () => {
     expect(getPixel(outputFive, 3, 1, 0)).toEqual([150, 140, 150, 255])
   })
 
+  it("keeps the base texture visible inside transparent corner cutouts when clear-below mode is enabled", () => {
+    const baseTexture = createTexture({
+      name: "Base",
+      width: 3,
+      frameSize: 3,
+      frames: [createSolidFrame(3, 3, rgba(10, 20, 30, 255))],
+    })
+
+    const sideTop = createOverlayTexture({
+      name: "Side",
+      size: 3,
+      pixels: [
+        { x: 0, y: 0, color: rgba(255, 0, 0, 255) },
+        { x: 1, y: 0, color: rgba(255, 0, 0, 255) },
+        { x: 2, y: 0, color: rgba(255, 0, 0, 255) },
+      ],
+    })
+
+    const innerTopLeft = createOverlayTexture({
+      name: "Inner",
+      size: 3,
+      pixels: [
+        { x: 0, y: 0, color: rgba(0, 255, 0, 255) },
+        { x: 0, y: 1, color: rgba(0, 255, 0, 255) },
+        { x: 1, y: 1, color: rgba(0, 255, 0, 255) },
+      ],
+    })
+
+    const outerTopLeft = createOverlayTexture({
+      name: "Outer",
+      size: 3,
+      pixels: [],
+    })
+
+    const blended = generateConnectedTexture({
+      texture: baseTexture,
+      side_top: sideTop,
+      crn_in_top_lt: innerTopLeft,
+      crn_out_top_lt: outerTopLeft,
+    })
+
+    const cleared = generateConnectedTexture(
+      {
+        texture: baseTexture,
+        side_top: sideTop,
+        crn_in_top_lt: innerTopLeft,
+        crn_out_top_lt: outerTopLeft,
+      },
+      "normal",
+      "override",
+    )
+
+    const topLeftCornerTemplate = getConnectedTextureTemplateIndex(
+      [
+        false, false, false,
+        false, true, true,
+        false, true, true,
+      ],
+      3,
+      4,
+    )
+
+    expect(topLeftCornerTemplate).not.toBeNull()
+
+    const blendedOutput = getFramePixels(
+      blended.outputTextures[`outputTexture${topLeftCornerTemplate}`],
+      0,
+    )
+    const clearedOutput = getFramePixels(
+      cleared.outputTextures[`outputTexture${topLeftCornerTemplate}`],
+      0,
+    )
+
+    expect(getPixel(blendedOutput, 3, 1, 0)).toEqual([255, 0, 0, 255])
+    expect(getPixel(clearedOutput, 3, 1, 0)).toEqual([10, 20, 30, 255])
+    expect(getPixel(clearedOutput, 3, 0, 0)).toEqual([0, 255, 0, 255])
+  })
+
   it("builds connected textures from fully manual advanced inputs", () => {
     const transparent = (name: string) =>
       createTexture({
@@ -624,6 +702,83 @@ describe("connected texture generation", () => {
     expect(getPixel(outputFive, 3, 2, 0)).toEqual([0, 255, 0, 255])
     expect(getPixel(outputFive, 3, 0, 2)).toEqual([0, 0, 255, 255])
     expect(getPixel(outputFive, 3, 0, 1)).toEqual([10, 20, 30, 255])
+  })
+
+  it("supports the same clear-below corner behavior for advanced connected textures", () => {
+    const transparent = (name: string) =>
+      createTexture({
+        name,
+        width: 3,
+        frameSize: 3,
+        frames: [createSolidFrame(3, 3, rgba(0, 0, 0, 0))],
+      })
+
+    const advancedInputs = ADVANCED_CONNECTED_TEXTURE_REQUIRED_INPUTS.reduce<Record<string, ReturnType<typeof createTexture>>>((accumulator, input) => {
+      accumulator[input.key] = transparent(input.label)
+      return accumulator
+    }, {})
+
+    advancedInputs.texture = createTexture({
+      name: "Base",
+      width: 3,
+      frameSize: 3,
+      frames: [createSolidFrame(3, 3, rgba(10, 20, 30, 255))],
+    })
+    advancedInputs.side_top = createOverlayTexture({
+      name: "Side Top",
+      size: 3,
+      pixels: [
+        { x: 0, y: 0, color: rgba(255, 0, 0, 255) },
+        { x: 1, y: 0, color: rgba(255, 0, 0, 255) },
+        { x: 2, y: 0, color: rgba(255, 0, 0, 255) },
+      ],
+    })
+    advancedInputs.side_lt = createOverlayTexture({
+      name: "Side Left",
+      size: 3,
+      pixels: [
+        { x: 0, y: 0, color: rgba(255, 0, 0, 255) },
+        { x: 0, y: 1, color: rgba(255, 0, 0, 255) },
+        { x: 0, y: 2, color: rgba(255, 0, 0, 255) },
+      ],
+    })
+    advancedInputs.crn_in_top_lt = createOverlayTexture({
+      name: "Inner Top Left",
+      size: 3,
+      pixels: [
+        { x: 0, y: 0, color: rgba(0, 255, 0, 255) },
+        { x: 0, y: 1, color: rgba(0, 255, 0, 255) },
+        { x: 1, y: 1, color: rgba(0, 255, 0, 255) },
+      ],
+    })
+
+    const blended = generateAdvancedConnectedTexture(advancedInputs)
+    const cleared = generateAdvancedConnectedTexture(advancedInputs, "normal", "override")
+
+    const topLeftCornerTemplate = getConnectedTextureTemplateIndex(
+      [
+        false, false, false,
+        false, true, true,
+        false, true, true,
+      ],
+      3,
+      4,
+    )
+
+    expect(topLeftCornerTemplate).not.toBeNull()
+
+    const blendedOutput = getFramePixels(
+      blended.outputTextures[`outputTexture${topLeftCornerTemplate}`],
+      0,
+    )
+    const clearedOutput = getFramePixels(
+      cleared.outputTextures[`outputTexture${topLeftCornerTemplate}`],
+      0,
+    )
+
+    expect(getPixel(blendedOutput, 3, 1, 0)).toEqual([255, 0, 0, 255])
+    expect(getPixel(clearedOutput, 3, 1, 0)).toEqual([10, 20, 30, 255])
+    expect(getPixel(clearedOutput, 3, 0, 0)).toEqual([0, 255, 0, 255])
   })
 
   it("matches simple and advanced connected textures when loading the asset URLs", async () => {
