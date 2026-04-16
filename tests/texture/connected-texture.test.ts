@@ -13,7 +13,9 @@ import {
   getConnectedTextureTextureInputHandleId,
   packConnectedTextureOutputs,
 } from "@/lib/connected-texture"
-import { describe, expect, it } from "vitest"
+import { normalizeTextureUrl } from "@/lib/texture"
+import { SIZE } from "@/lib/utils"
+import { afterEach, describe, expect, it } from "vitest"
 
 import {
   createFrame,
@@ -23,6 +25,7 @@ import {
   getPixel,
   rgba,
 } from "./fixtures"
+import { installTextureDomStubs } from "./dom-stubs"
 
 function setPixel(
   framePixels: Uint8ClampedArray,
@@ -56,6 +59,151 @@ function createOverlayTexture(options: {
     frames: [frame],
   })
 }
+
+function rotateSquareFrame(
+  pixels: Uint8ClampedArray,
+  size: number,
+  quarterTurns: 1 | 2 | 3,
+) {
+  const rotated = new Uint8ClampedArray(pixels.length)
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const sourceIndex = (y * size + x) * 4
+      let targetX = x
+      let targetY = y
+
+      if (quarterTurns === 1) {
+        targetX = size - 1 - y
+        targetY = x
+      } else if (quarterTurns === 2) {
+        targetX = size - 1 - x
+        targetY = size - 1 - y
+      } else {
+        targetX = y
+        targetY = size - 1 - x
+      }
+
+      const targetIndex = (targetY * size + targetX) * 4
+      rotated.set(pixels.subarray(sourceIndex, sourceIndex + 4), targetIndex)
+    }
+  }
+
+  return rotated
+}
+
+function createTransparentFrame(size: number) {
+  return createSolidFrame(size, size, rgba(0, 0, 0, 0))
+}
+
+function createAssetFrame(draw: (frame: Uint8ClampedArray) => void) {
+  const frame = createTransparentFrame(SIZE)
+  draw(frame)
+  return frame
+}
+
+function createAssetImageMap() {
+  const textureFrame = createSolidFrame(SIZE, SIZE, rgba(40, 70, 220, 255))
+  const sideTopFrame = createAssetFrame((frame) => {
+    for (let x = 0; x < SIZE; x += 1) {
+      setPixel(frame, SIZE, x, 0, rgba(255, 255, 255, 255))
+      setPixel(frame, SIZE, x, 1, rgba(255, 255, 255, 255))
+    }
+  })
+  const innerTopLeftFrame = createAssetFrame((frame) => {
+    setPixel(frame, SIZE, 0, 0, rgba(255, 255, 255, 255))
+    setPixel(frame, SIZE, 1, 0, rgba(255, 255, 255, 255))
+    setPixel(frame, SIZE, 0, 1, rgba(255, 255, 255, 255))
+  })
+  const outerTopLeftFrame = createAssetFrame((frame) => {
+    setPixel(frame, SIZE, 0, SIZE - 1, rgba(255, 255, 255, 255))
+    setPixel(frame, SIZE, 1, SIZE - 1, rgba(255, 255, 255, 255))
+    setPixel(frame, SIZE, 0, SIZE - 2, rgba(255, 255, 255, 255))
+  })
+
+  return {
+    "/assets/texture.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: textureFrame,
+    },
+    "/assets/side_top.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: sideTopFrame,
+    },
+    "/assets/side_rt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(sideTopFrame, SIZE, 1),
+    },
+    "/assets/side_btm.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(sideTopFrame, SIZE, 2),
+    },
+    "/assets/side_lt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(sideTopFrame, SIZE, 3),
+    },
+    "/assets/crn_in_top_lt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: innerTopLeftFrame,
+    },
+    "/assets/crn_in_top_rt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(innerTopLeftFrame, SIZE, 1),
+    },
+    "/assets/crn_in_btm_rt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(innerTopLeftFrame, SIZE, 2),
+    },
+    "/assets/crn_in_btm_lt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(innerTopLeftFrame, SIZE, 3),
+    },
+    "/assets/crn_out_top_lt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: outerTopLeftFrame,
+    },
+    "/assets/crn_out_top_rt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(outerTopLeftFrame, SIZE, 1),
+    },
+    "/assets/crn_out_btm_rt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(outerTopLeftFrame, SIZE, 2),
+    },
+    "/assets/crn_out_btm_lt.png": {
+      width: SIZE,
+      height: SIZE,
+      pixels: rotateSquareFrame(outerTopLeftFrame, SIZE, 3),
+    },
+  }
+}
+
+function expectTexturesToMatch(left: ReturnType<typeof createTexture>, right: ReturnType<typeof createTexture>) {
+  expect(left.width).toBe(right.width)
+  expect(left.frameSize).toBe(right.frameSize)
+  expect(left.frames).toBe(right.frames)
+  expect(left.sourceFrames).toBe(right.sourceFrames)
+  expect(left.pixels).toBe(right.pixels)
+}
+
+let restoreDom: (() => void) | null = null
+
+afterEach(() => {
+  restoreDom?.()
+  restoreDom = null
+})
 
 describe("connected texture helpers", () => {
   it("exposes required input metadata and handle ids", () => {
@@ -476,5 +624,71 @@ describe("connected texture generation", () => {
     expect(getPixel(outputFive, 3, 2, 0)).toEqual([0, 255, 0, 255])
     expect(getPixel(outputFive, 3, 0, 2)).toEqual([0, 0, 255, 255])
     expect(getPixel(outputFive, 3, 0, 1)).toEqual([10, 20, 30, 255])
+  })
+
+  it("matches simple and advanced connected textures when loading the asset URLs", async () => {
+    restoreDom = installTextureDomStubs(createAssetImageMap())
+
+    const [
+      texture,
+      sideTop,
+      innerTopLeft,
+      outerTopLeft,
+      sideRight,
+      sideBottom,
+      sideLeft,
+      innerTopRight,
+      innerBottomLeft,
+      innerBottomRight,
+      outerTopRight,
+      outerBottomLeft,
+      outerBottomRight,
+    ] = await Promise.all([
+      normalizeTextureUrl("/assets/texture.png", "texture"),
+      normalizeTextureUrl("/assets/side_top.png", "side_top"),
+      normalizeTextureUrl("/assets/crn_in_top_lt.png", "crn_in_top_lt"),
+      normalizeTextureUrl("/assets/crn_out_top_lt.png", "crn_out_top_lt"),
+      normalizeTextureUrl("/assets/side_rt.png", "side_rt"),
+      normalizeTextureUrl("/assets/side_btm.png", "side_btm"),
+      normalizeTextureUrl("/assets/side_lt.png", "side_lt"),
+      normalizeTextureUrl("/assets/crn_in_top_rt.png", "crn_in_top_rt"),
+      normalizeTextureUrl("/assets/crn_in_btm_lt.png", "crn_in_btm_lt"),
+      normalizeTextureUrl("/assets/crn_in_btm_rt.png", "crn_in_btm_rt"),
+      normalizeTextureUrl("/assets/crn_out_top_rt.png", "crn_out_top_rt"),
+      normalizeTextureUrl("/assets/crn_out_btm_lt.png", "crn_out_btm_lt"),
+      normalizeTextureUrl("/assets/crn_out_btm_rt.png", "crn_out_btm_rt"),
+    ])
+
+    const simpleResult = generateConnectedTexture({
+      texture,
+      side_top: sideTop,
+      crn_in_top_lt: innerTopLeft,
+      crn_out_top_lt: outerTopLeft,
+    })
+
+    const advancedResult = generateAdvancedConnectedTexture({
+      texture,
+      side_top: sideTop,
+      side_rt: sideRight,
+      side_btm: sideBottom,
+      side_lt: sideLeft,
+      crn_in_top_lt: innerTopLeft,
+      crn_in_top_rt: innerTopRight,
+      crn_in_btm_lt: innerBottomLeft,
+      crn_in_btm_rt: innerBottomRight,
+      crn_out_top_lt: outerTopLeft,
+      crn_out_top_rt: outerTopRight,
+      crn_out_btm_lt: outerBottomLeft,
+      crn_out_btm_rt: outerBottomRight,
+    })
+
+    expectTexturesToMatch(simpleResult.texture, advancedResult.texture)
+
+    for (const { handleId } of CONNECTED_TEXTURE_OUTPUTS) {
+      expectTexturesToMatch(
+        simpleResult.outputTextures[handleId],
+        advancedResult.outputTextures[handleId]
+      )
+    }
   })
 })
