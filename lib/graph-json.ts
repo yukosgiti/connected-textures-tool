@@ -136,6 +136,7 @@ function getPersistentNodeData(type: AppNodeType, data: JsonRecord) {
         "thickness",
         "phase",
       ])
+    case "linearWaveTexture":
     case "radialWaveTexture":
       return pickDefinedValues(data, [
         "color",
@@ -150,13 +151,14 @@ function getPersistentNodeData(type: AppNodeType, data: JsonRecord) {
     case "connectedTexturePack":
     case "reverseTexture":
     case "invertTexture":
-    case "maskTexture":
     case "grayscaleTexture":
     case "channelSplitTexture":
     case "channelCombineTexture":
     case "pingPongTexture":
     case "export":
       return {}
+    case "maskTexture":
+      return pickDefinedValues(data, ["presetMask"])
     case "rotateTexture":
     case "swirlTexture":
     case "magnifyTexture":

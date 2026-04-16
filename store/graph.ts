@@ -24,6 +24,7 @@ import { GrayscaleTextureNode } from "@/components/nodes/GrayscaleTextureNode"
 import { HslTextureNode } from "@/components/nodes/HslTextureNode"
 import { InvertTextureNode } from "@/components/nodes/InvertTextureNode"
 import { LevelsTextureNode } from "@/components/nodes/LevelsTextureNode"
+import { LinearWaveTextureNode } from "@/components/nodes/LinearWaveTextureNode"
 import { MaskTextureNode } from "@/components/nodes/MaskTextureNode"
 import { MergeTextureNode } from "@/components/nodes/MergeTextureNode"
 import { OpacityTextureNode } from "@/components/nodes/OpacityTextureNode"
@@ -96,6 +97,17 @@ function getHandleDataType(
 
       return handleId === "inputCycles" ||
         handleId === "inputAmplitude" ||
+        handleId === "inputThickness" ||
+        handleId === "inputPhase"
+        ? "value"
+        : null
+    case "linearWaveTexture":
+    case "radialWaveTexture":
+      if (direction === "source") {
+        return "texture"
+      }
+
+      return handleId === "inputCycles" ||
         handleId === "inputThickness" ||
         handleId === "inputPhase"
         ? "value"
@@ -230,6 +242,7 @@ const useStore = create<AppState>((set, get) => ({
     radialGradientTexture: RadialGradientTextureNode,
     sineWaveTexture: SineWaveTextureNode,
     squareWaveTexture: SquareWaveTextureNode,
+    linearWaveTexture: LinearWaveTextureNode,
     radialWaveTexture: RadialWaveTextureNode,
     connectedTexture: ConnectedTextureNode,
     advancedConnectedTexture: AdvancedConnectedTextureNode,

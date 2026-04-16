@@ -11,6 +11,7 @@ export const RANDOM_TEXTURE_MODE_LABELS = {
 export const WAVE_TEXTURE_KIND_LABELS = {
   sine: "Sine Wave",
   square: "Square Wave",
+  linear: "Linear Wave",
   radial: "Radial Wave",
 } as const
 
@@ -177,6 +178,17 @@ function renderWaveFrame(
     )
   }
 
+  if (kind === "linear") {
+    return renderLinearWaveFrame(
+      red,
+      green,
+      blue,
+      cycles,
+      thickness,
+      phase
+    )
+  }
+
   const safeCycles = clamp(cycles, 0.25, 8)
   const safeAmplitude = clamp(amplitude, 0, (SIZE - 1) / 2)
   const safeThickness = clamp(thickness, 1, SIZE)
@@ -242,6 +254,42 @@ function renderRadialWaveFrame(
       const distanceToRing = Math.min(shiftedDistance, ringSpacing - shiftedDistance)
 
       if (distanceToRing > lineRadius) {
+        continue
+      }
+
+      const pixelOffset = (y * SIZE + x) * 4
+      framePixels[pixelOffset] = red
+      framePixels[pixelOffset + 1] = green
+      framePixels[pixelOffset + 2] = blue
+      framePixels[pixelOffset + 3] = 255
+    }
+  }
+
+  return framePixels
+}
+
+function renderLinearWaveFrame(
+  red: number,
+  green: number,
+  blue: number,
+  cycles: number,
+  thickness: number,
+  phase: number
+) {
+  const safeCycles = clamp(cycles, 0.25, 16)
+  const safeThickness = clamp(thickness, 0.5, SIZE)
+  const safePhase = clamp(phase, -1, 1)
+  const lineSpacing = SIZE / safeCycles
+  const phaseOffset = safePhase * lineSpacing
+  const lineRadius = Math.max(safeThickness / 2, 0.5)
+  const framePixels = new Uint8ClampedArray(SIZE * SIZE * 4)
+
+  for (let y = 0; y < SIZE; y += 1) {
+    for (let x = 0; x < SIZE; x += 1) {
+      const shiftedX = wrapPositive(x + phaseOffset, lineSpacing)
+      const distanceToLine = Math.min(shiftedX, lineSpacing - shiftedX)
+
+      if (distanceToLine > lineRadius) {
         continue
       }
 

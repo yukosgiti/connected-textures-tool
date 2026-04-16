@@ -12,6 +12,7 @@ export const NODE_TYPE_LABELS = {
   radialGradientTexture: "Radial Gradient Texture",
   sineWaveTexture: "Sine Wave Texture",
   squareWaveTexture: "Square Wave Texture",
+  linearWaveTexture: "Linear Wave Texture",
   radialWaveTexture: "Radial Wave Texture",
   connectedTexture: "Simple Connected Texture",
   advancedConnectedTexture: "Advanced Connected Texture",
@@ -133,6 +134,15 @@ export function getInitialNodeData(type: AppNodeType) {
         thickness: 2,
         phase: 0,
       }
+    case "linearWaveTexture":
+      return {
+        texture: null,
+        error: null,
+        color: "#ffffff",
+        cycles: 4,
+        thickness: 1.25,
+        phase: 0,
+      }
     case "radialWaveTexture":
       return {
         texture: null,
@@ -247,7 +257,7 @@ export function getInitialNodeData(type: AppNodeType) {
     case "mergeTexture":
       return { texture: null, error: null, mode: "normal" }
     case "maskTexture":
-      return { texture: null, error: null }
+      return { texture: null, presetMask: null, error: null }
     case "channelSplitTexture":
       return { texture: null, outputTextures: {}, error: null }
     case "channelCombineTexture":

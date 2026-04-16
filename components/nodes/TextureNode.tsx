@@ -42,6 +42,7 @@ const PRESET_TEXTURE_ASSETS = [
     { name: "side_top.png", src: "/assets/side_top.png" },
     { name: "mask-t.png", src: "/assets/mask-t.png" },
     { name: "mask-b.png", src: "/assets/mask-b.png" },
+    { name: "mask-border.png", src: "/assets/mask-border.png" },
     { name: "mask-l.png", src: "/assets/mask-l.png" },
     { name: "mask-r.png", src: "/assets/mask-r.png" },
     { name: "crn_in_top_lt.png", src: "/assets/crn_in_top_lt.png" },
