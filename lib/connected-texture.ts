@@ -1,7 +1,7 @@
 import connectedTextureManifest from "@/lib/connected-texture-templates.json";
 import {
+  decodeTexturePixels,
   encodeTexturePixels,
-  getTextureFramePixels,
   TEXTURE_BLEND_MODE_LABELS,
   type SerializedTextureData,
   type TextureBlendMode,
@@ -53,7 +53,19 @@ type ConnectedTextureManifest = {
   templates: ConnectedTextureTemplate[];
 };
 
-type ConnectedTextureFrames = Uint8ClampedArray[];
+type ConnectedTextureBounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+};
+
+type ConnectedTextureFrame = {
+  pixels: Uint8ClampedArray;
+  bounds: ConnectedTextureBounds | null;
+};
+
+type ConnectedTextureFrames = ConnectedTextureFrame[];
 type ConnectedTextureNeighbors = {
   top: boolean;
   right: boolean;
@@ -128,6 +140,10 @@ const CONNECTED_TEXTURE_LAYER_ORDER_INDEX = new Map(
 const CONNECTED_TEXTURE_TEMPLATE_LOOKUP = new Map(
   manifest.templates.map((template) => [sortTemplateLayers(template.layers).join("|"), template.index]),
 );
+const SORTED_CONNECTED_TEXTURE_TEMPLATES = manifest.templates.map((template) => ({
+  ...template,
+  sortedLayers: sortTemplateLayers(template.layers),
+}));
 
 export function getConnectedTextureTextureInputHandleId(index: number) {
   return `inputTexture${index}`;
@@ -235,8 +251,19 @@ function transformSquarePixels(
   }
 }
 
-function compositeSourceOver(target: Uint8ClampedArray, overlay: Uint8ClampedArray) {
-  for (let index = 0; index < target.length; index += 4) {
+function compositeSourceOver(
+  target: Uint8ClampedArray,
+  overlay: Uint8ClampedArray,
+  bounds: ConnectedTextureBounds | null,
+  size: number,
+) {
+  if (!bounds) {
+    return;
+  }
+
+  for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
+    for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
+      const index = (y * size + x) * 4;
     const sourceAlpha = overlay[index + 3] / 255;
 
     if (sourceAlpha <= 0) {
@@ -269,6 +296,7 @@ function compositeSourceOver(target: Uint8ClampedArray, overlay: Uint8ClampedArr
     target[index + 1] = Math.round(outGreen * 255);
     target[index + 2] = Math.round(outBlue * 255);
     target[index + 3] = Math.round(outAlpha * 255);
+    }
   }
 }
 
@@ -276,13 +304,21 @@ function compositeWithBlendMode(
   target: Uint8ClampedArray,
   overlay: Uint8ClampedArray,
   mode: TextureBlendMode,
+  bounds: ConnectedTextureBounds | null,
+  size: number,
 ) {
-  if (mode === "normal") {
-    compositeSourceOver(target, overlay);
+  if (!bounds) {
     return;
   }
 
-  for (let index = 0; index < target.length; index += 4) {
+  if (mode === "normal") {
+    compositeSourceOver(target, overlay, bounds, size);
+    return;
+  }
+
+  for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
+    for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
+      const index = (y * size + x) * 4;
     const sourceAlpha = overlay[index + 3] / 255;
 
     if (sourceAlpha <= 0) {
@@ -331,10 +367,11 @@ function compositeWithBlendMode(
     target[index + 1] = Math.round(clampUnit(outGreen) * 255);
     target[index + 2] = Math.round(clampUnit(outBlue) * 255);
     target[index + 3] = Math.round(clampUnit(outAlpha) * 255);
+    }
   }
 }
 
-function getOpaqueBounds(pixels: Uint8ClampedArray, size: number) {
+function getOpaqueBounds(pixels: Uint8ClampedArray, size: number): ConnectedTextureBounds | null {
   let minX = size;
   let minY = size;
   let maxX = -1;
@@ -365,11 +402,11 @@ function getOpaqueBounds(pixels: Uint8ClampedArray, size: number) {
 function compositeCornerOverride(
   target: Uint8ClampedArray,
   base: Uint8ClampedArray,
-  overlay: Uint8ClampedArray,
+  overlay: ConnectedTextureFrame,
   mode: TextureBlendMode,
   size: number,
 ) {
-  const bounds = getOpaqueBounds(overlay, size);
+  const { bounds, pixels } = overlay;
 
   if (!bounds) {
     return;
@@ -378,7 +415,7 @@ function compositeCornerOverride(
   for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
     for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
       const index = (y * size + x) * 4;
-      const sourceAlpha = overlay[index + 3] / 255;
+      const sourceAlpha = pixels[index + 3] / 255;
 
       if (sourceAlpha <= 0) {
         target[index] = base[index];
@@ -399,9 +436,9 @@ function compositeCornerOverride(
         continue;
       }
 
-      const sourceRed = overlay[index] / 255;
-      const sourceGreen = overlay[index + 1] / 255;
-      const sourceBlue = overlay[index + 2] / 255;
+      const sourceRed = pixels[index] / 255;
+      const sourceGreen = pixels[index + 1] / 255;
+      const sourceBlue = pixels[index + 2] / 255;
       const targetRed = base[index] / 255;
       const targetGreen = base[index + 1] / 255;
       const targetBlue = base[index + 2] / 255;
@@ -451,9 +488,17 @@ function getRequiredInputTexture(inputs: ConnectedTextureInputs, key: ConnectedT
 
 function createTextureFrames(texture: SerializedTextureData) {
   const frames: ConnectedTextureFrames = [];
+  const decodedPixels = decodeTexturePixels(texture);
+  const frameByteLength = texture.width * texture.frameSize * 4;
 
   for (let frameIndex = 0; frameIndex < texture.frames; frameIndex += 1) {
-    frames.push(getTextureFramePixels(texture, frameIndex));
+    const frameStart = frameIndex * frameByteLength;
+    const framePixels = decodedPixels.subarray(frameStart, frameStart + frameByteLength);
+
+    frames.push({
+      pixels: framePixels,
+      bounds: getOpaqueBounds(framePixels, texture.frameSize),
+    });
   }
 
   return frames;
@@ -464,7 +509,14 @@ function transformTextureFrames(
   size: number,
   transform: ConnectedTextureTransform,
 ) {
-  return frames.map((framePixels) => transformSquarePixels(framePixels, size, transform));
+  return frames.map((frame) => {
+    const pixels = transformSquarePixels(frame.pixels, size, transform);
+
+    return {
+      pixels,
+      bounds: getOpaqueBounds(pixels, size),
+    };
+  });
 }
 
 function sortTemplateLayers(layers: ConnectedTextureAssetKey[]) {
@@ -494,7 +546,10 @@ function createConnectedTexturePreviewTexture(
       throw new Error(`Missing connected texture output ${output.index}.`);
     }
 
-    previewPixels.set(getTextureFramePixels(outputTexture, 0), output.index * frameByteLength);
+    previewPixels.set(
+      decodeTexturePixels(outputTexture).subarray(0, frameByteLength),
+      output.index * frameByteLength,
+    );
   }
 
   return {
@@ -675,12 +730,12 @@ function createResolvedConnectedTextureInputs(
     throw new Error("Base texture is required.");
   }
 
-  for (const template of manifest.templates) {
-    const layers = sortTemplateLayers(template.layers);
+  for (const template of SORTED_CONNECTED_TEXTURE_TEMPLATES) {
+    const layers = template.sortedLayers;
     const outputTexturePixels = new Uint8ClampedArray(frameByteLength * textureFrames);
 
     for (let frameIndex = 0; frameIndex < textureFrames; frameIndex += 1) {
-      const framePixels = new Uint8ClampedArray(baseFrames[frameIndex]);
+      const framePixels = new Uint8ClampedArray(baseFrames[frameIndex].pixels);
 
       for (const layerKey of layers) {
         const layerFrames = resolvedInputs.get(layerKey);
@@ -692,7 +747,7 @@ function createResolvedConnectedTextureInputs(
         if (cornerAlphaMode === "override" && isCornerLayer(layerKey)) {
           compositeCornerOverride(
             framePixels,
-            baseFrames[frameIndex],
+            baseFrames[frameIndex].pixels,
             layerFrames[frameIndex],
             mode,
             textureSize,
@@ -700,7 +755,13 @@ function createResolvedConnectedTextureInputs(
           continue;
         }
 
-        compositeWithBlendMode(framePixels, layerFrames[frameIndex], mode);
+        compositeWithBlendMode(
+          framePixels,
+          layerFrames[frameIndex].pixels,
+          mode,
+          layerFrames[frameIndex].bounds,
+          textureSize,
+        );
       }
 
       outputTexturePixels.set(framePixels, frameIndex * frameByteLength);
