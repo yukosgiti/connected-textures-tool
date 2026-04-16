@@ -40,12 +40,22 @@ const PRESET_TEXTURE_ASSETS = [
     { name: "cobblestone.png", src: "/assets/cobblestone.png" },
     { name: "texture.png", src: "/assets/texture.png" },
     { name: "side_top.png", src: "/assets/side_top.png" },
+    { name: "mask-t.png", src: "/assets/mask-t.png" },
+    { name: "mask-b.png", src: "/assets/mask-b.png" },
+    { name: "mask-l.png", src: "/assets/mask-l.png" },
+    { name: "mask-r.png", src: "/assets/mask-r.png" },
     { name: "crn_in_top_lt.png", src: "/assets/crn_in_top_lt.png" },
     { name: "crn_out_top_lt.png", src: "/assets/crn_out_top_lt.png" },
     { name: "linear-gradient.png", src: "/assets/linear-gradient.png" },
     { name: "circle.png", src: "/assets/circle.png" },
-    { name: "corner.png", src: "/assets/corner.png" },
-    { name: "top.png", src: "/assets/top.png" }
+    { name: "mask_crn_tl.png", src: "/assets/mask_crn_tl.png" },
+    { name: "mask_crn_tr.png", src: "/assets/mask_crn_tr.png" },
+    { name: "mask_crn_bl.png", src: "/assets/mask_crn_bl.png" },
+    { name: "mask_crn_br.png", src: "/assets/mask_crn_br.png" },
+    { name: "mask_inv_crn_tl.png", src: "/assets/mask_inv_crn_tl.png" },
+    { name: "mask_inv_crn_tr.png", src: "/assets/mask_inv_crn_tr.png" },
+    { name: "mask_inv_crn_bl.png", src: "/assets/mask_inv_crn_bl.png" },
+    { name: "mask_inv_crn_br.png", src: "/assets/mask_inv_crn_br.png" }
 ] as const;
 
 type StaticPresetTexture = {
