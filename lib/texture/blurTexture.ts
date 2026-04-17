@@ -1,11 +1,12 @@
 import { type SerializedTextureData } from "./types"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 import { encodeTexturePixels } from "./encodeTexturePixels"
+import { memoizeTextureFrameValueOperation } from "./internal"
 
-export function blurTexture(
+const computeBlurTexture = (
   texture: SerializedTextureData,
   blurValues: readonly number[]
-): SerializedTextureData {
+): SerializedTextureData => {
   const sourcePixels = decodeTexturePixels(texture)
   const blurredPixels = new Uint8ClampedArray(sourcePixels.length)
   const width = texture.width
@@ -131,3 +132,7 @@ export function blurTexture(
     pixels: encodeTexturePixels(blurredPixels),
   }
 }
+
+export const blurTexture = memoizeTextureFrameValueOperation(
+  computeBlurTexture
+)

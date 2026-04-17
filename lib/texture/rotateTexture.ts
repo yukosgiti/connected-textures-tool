@@ -1,11 +1,12 @@
 import { type SerializedTextureData } from "./types"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 import { encodeTexturePixels } from "./encodeTexturePixels"
+import { memoizeTextureFrameValueOperation } from "./internal"
 
-export function rotateTexture(
+const computeRotateTexture = (
   texture: SerializedTextureData,
   values: readonly number[]
-): SerializedTextureData {
+): SerializedTextureData => {
   const decodedPixels = decodeTexturePixels(texture)
   const width = texture.width
   const height = texture.frameSize
@@ -50,3 +51,7 @@ export function rotateTexture(
     pixels: encodeTexturePixels(rotatedPixels),
   }
 }
+
+export const rotateTexture = memoizeTextureFrameValueOperation(
+  computeRotateTexture
+)

@@ -1,15 +1,19 @@
 import { type SerializedTextureData } from "./types"
-import { createDerivedTexture, sampleClampedPixel } from "./internal"
+import {
+  createDerivedTexture,
+  memoizeTextureFrameValueOperation,
+  sampleClampedPixel,
+} from "./internal"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-export function magnifyTexture(
+const computeMagnifyTexture = (
   texture: SerializedTextureData,
   values: readonly number[]
-): SerializedTextureData {
+): SerializedTextureData => {
   const sourcePixels = decodeTexturePixels(texture)
   const width = texture.width
   const height = texture.frameSize
@@ -55,3 +59,7 @@ export function magnifyTexture(
 
   return createDerivedTexture(texture, "magnified", distortedPixels)
 }
+
+export const magnifyTexture = memoizeTextureFrameValueOperation(
+  computeMagnifyTexture
+)

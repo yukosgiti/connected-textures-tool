@@ -1,15 +1,19 @@
 import { type SerializedTextureData } from "./types"
-import { createDerivedTexture, samplePixel } from "./internal"
+import {
+  createDerivedTexture,
+  memoizeTextureFrameValueOperation,
+  samplePixel,
+} from "./internal"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-export function swirlTexture(
+const computeSwirlTexture = (
   texture: SerializedTextureData,
   values: readonly number[]
-): SerializedTextureData {
+): SerializedTextureData => {
   const sourcePixels = decodeTexturePixels(texture)
   const width = texture.width
   const height = texture.frameSize
@@ -54,3 +58,7 @@ export function swirlTexture(
 
   return createDerivedTexture(texture, "swirled", swirledPixels)
 }
+
+export const swirlTexture = memoizeTextureFrameValueOperation(
+  computeSwirlTexture
+)

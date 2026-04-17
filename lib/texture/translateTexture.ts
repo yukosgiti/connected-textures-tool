@@ -1,12 +1,13 @@
 import { type SerializedTextureData } from "./types"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 import { encodeTexturePixels } from "./encodeTexturePixels"
+import { memoizeTextureFramePairOperation } from "./internal"
 
-export function translateTexture(
+const computeTranslateTexture = (
   texture: SerializedTextureData,
   xValues: readonly number[],
   yValues: readonly number[]
-): SerializedTextureData {
+): SerializedTextureData => {
   const decodedPixels = decodeTexturePixels(texture)
   const width = texture.width
   const height = texture.frameSize
@@ -45,3 +46,7 @@ export function translateTexture(
     pixels: encodeTexturePixels(translatedPixels),
   }
 }
+
+export const translateTexture = memoizeTextureFramePairOperation(
+  computeTranslateTexture
+)

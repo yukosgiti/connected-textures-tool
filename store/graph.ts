@@ -51,6 +51,17 @@ import { HoldTextureNode } from "@/components/nodes/HoldTextureNode"
 import { MagnifyTextureNode } from "@/components/nodes/MagnifyTextureNode"
 import { type Connection, type Edge } from "@xyflow/react"
 import { SwirlTextureNode } from "@/components/nodes/SwirlTextureNode"
+import { type AppNode, type NodeDataPatch } from "./types"
+
+function isNodeDataPatchEqual(node: AppNode, newData: NodeDataPatch) {
+  for (const [key, value] of Object.entries(newData)) {
+    if (node.data[key] !== value) {
+      return false
+    }
+  }
+
+  return true
+}
 
 type HandleDataType = "value" | "texture" | "connectedTexture" | null
 
@@ -310,11 +321,23 @@ const useStore = create<AppState>((set, get) => ({
     set({ edges })
   },
   setNode: (id, newData) => {
-    set((state) => ({
-      nodes: state.nodes.map((node) =>
-        node.id === id ? { ...node, data: { ...node.data, ...newData } } : node
-      ),
-    }))
+    set((state) => {
+      let hasChanges = false
+      const nodes = state.nodes.map((node) => {
+        if (node.id !== id) {
+          return node
+        }
+
+        if (isNodeDataPatchEqual(node, newData)) {
+          return node
+        }
+
+        hasChanges = true
+        return { ...node, data: { ...node.data, ...newData } }
+      })
+
+      return hasChanges ? { nodes } : state
+    })
   },
   getNode: (id) => get().nodes.find((node) => node.id === id),
 }))

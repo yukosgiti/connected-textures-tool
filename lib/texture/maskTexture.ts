@@ -1,12 +1,12 @@
 import { type SerializedTextureData } from "./types"
-import { clampUnit } from "./internal"
+import { clampUnit, memoizeTexturePairOperation } from "./internal"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 import { encodeTexturePixels } from "./encodeTexturePixels"
 
-export function maskTexture(
+const computeMaskTexture = (
   texture: SerializedTextureData,
   mask: SerializedTextureData
-): SerializedTextureData {
+): SerializedTextureData => {
   if (
     texture.width !== mask.width ||
     texture.frameSize !== mask.frameSize ||
@@ -41,3 +41,5 @@ export function maskTexture(
     pixels: encodeTexturePixels(maskedPixels),
   }
 }
+
+export const maskTexture = memoizeTexturePairOperation(computeMaskTexture)

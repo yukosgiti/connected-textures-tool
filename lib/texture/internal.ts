@@ -278,6 +278,157 @@ export function createDerivedTexture(
   }
 }
 
+export function memoizeTextureFrameValueOperation(
+  operation: (
+    texture: SerializedTextureData,
+    values: readonly number[]
+  ) => SerializedTextureData
+) {
+  const cache = new WeakMap<
+    SerializedTextureData,
+    WeakMap<readonly number[], SerializedTextureData>
+  >()
+
+  return (texture: SerializedTextureData, values: readonly number[]) => {
+    let textureCache = cache.get(texture)
+
+    if (!textureCache) {
+      textureCache = new WeakMap()
+      cache.set(texture, textureCache)
+    }
+
+    const cached = textureCache.get(values)
+
+    if (cached) {
+      return cached
+    }
+
+    const result = operation(texture, values)
+    textureCache.set(values, result)
+    return result
+  }
+}
+
+export function memoizeTextureFramePairOperation(
+  operation: (
+    texture: SerializedTextureData,
+    firstValues: readonly number[],
+    secondValues: readonly number[]
+  ) => SerializedTextureData
+) {
+  const cache = new WeakMap<
+    SerializedTextureData,
+    WeakMap<readonly number[], WeakMap<readonly number[], SerializedTextureData>>
+  >()
+
+  return (
+    texture: SerializedTextureData,
+    firstValues: readonly number[],
+    secondValues: readonly number[]
+  ) => {
+    let textureCache = cache.get(texture)
+
+    if (!textureCache) {
+      textureCache = new WeakMap()
+      cache.set(texture, textureCache)
+    }
+
+    let firstValuesCache = textureCache.get(firstValues)
+
+    if (!firstValuesCache) {
+      firstValuesCache = new WeakMap()
+      textureCache.set(firstValues, firstValuesCache)
+    }
+
+    const cached = firstValuesCache.get(secondValues)
+
+    if (cached) {
+      return cached
+    }
+
+    const result = operation(texture, firstValues, secondValues)
+    firstValuesCache.set(secondValues, result)
+    return result
+  }
+}
+
+export function memoizeTexturePairOperation(
+  operation: (
+    texture: SerializedTextureData,
+    otherTexture: SerializedTextureData
+  ) => SerializedTextureData
+) {
+  const cache = new WeakMap<
+    SerializedTextureData,
+    WeakMap<SerializedTextureData, SerializedTextureData>
+  >()
+
+  return (
+    texture: SerializedTextureData,
+    otherTexture: SerializedTextureData
+  ) => {
+    let textureCache = cache.get(texture)
+
+    if (!textureCache) {
+      textureCache = new WeakMap()
+      cache.set(texture, textureCache)
+    }
+
+    const cached = textureCache.get(otherTexture)
+
+    if (cached) {
+      return cached
+    }
+
+    const result = operation(texture, otherTexture)
+    textureCache.set(otherTexture, result)
+    return result
+  }
+}
+
+export function memoizeTexturePairValueOperation<TKey>(
+  operation: (
+    texture: SerializedTextureData,
+    otherTexture: SerializedTextureData,
+    value: TKey
+  ) => SerializedTextureData
+) {
+  const cache = new WeakMap<
+    SerializedTextureData,
+    WeakMap<SerializedTextureData, Map<TKey, SerializedTextureData>>
+  >()
+
+  return (
+    texture: SerializedTextureData,
+    otherTexture: SerializedTextureData,
+    value: TKey
+  ) => {
+    let textureCache = cache.get(texture)
+
+    if (!textureCache) {
+      textureCache = new WeakMap()
+      cache.set(texture, textureCache)
+    }
+
+    let otherTextureCache = textureCache.get(otherTexture)
+
+    if (!otherTextureCache) {
+      otherTextureCache = new Map()
+      textureCache.set(otherTexture, otherTextureCache)
+    }
+
+    const cached = otherTextureCache.get(value)
+
+    if (cached) {
+      return cached
+    }
+
+    const result = operation(texture, otherTexture, value)
+    otherTextureCache.set(value, result)
+    return result
+  }
+}
+
 export function wrapRepeatIndex(value: number, size: number) {
   return ((value % size) + size) % size
 }

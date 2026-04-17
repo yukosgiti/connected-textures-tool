@@ -1,13 +1,17 @@
 import { type SerializedTextureData, type TextureBlendMode } from "./types"
-import { blendChannel, clampUnit } from "./internal"
+import {
+  blendChannel,
+  clampUnit,
+  memoizeTexturePairValueOperation,
+} from "./internal"
 import { decodeTexturePixels } from "./decodeTexturePixels"
 import { encodeTexturePixels } from "./encodeTexturePixels"
 
-export function blendTextures(
+const computeBlendTextures = (
   baseTexture: SerializedTextureData,
   blendTexture: SerializedTextureData,
   mode: TextureBlendMode
-): SerializedTextureData {
+): SerializedTextureData => {
   if (
     baseTexture.width !== blendTexture.width ||
     baseTexture.frameSize !== blendTexture.frameSize ||
@@ -68,3 +72,7 @@ export function blendTextures(
     pixels: encodeTexturePixels(mergedPixels),
   }
 }
+
+export const blendTextures = memoizeTexturePairValueOperation(
+  computeBlendTextures
+)
