@@ -57,9 +57,10 @@ function createProjectZipName(date = new Date()) {
 export async function textureToPngBlob(texture: SerializedTextureData) {
   const canvas = createCanvas(texture.width, texture.height);
   const context = getCanvasContext(canvas);
+  const imageDataPixels = new Uint8ClampedArray(decodeTexturePixels(texture));
 
   context.putImageData(
-    new ImageData(decodeTexturePixels(texture), texture.width, texture.height),
+    new ImageData(imageDataPixels, texture.width, texture.height),
     0,
     0,
   );
