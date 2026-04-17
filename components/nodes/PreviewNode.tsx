@@ -42,7 +42,7 @@ type PreviewNodeData = {
     error?: string | null;
 }
 
-const PREVIEW_GRID_OPTIONS = [3, 4, 8] as const;
+const PREVIEW_GRID_OPTIONS = [3, 4, 8, 21] as const;
 const CHECKER_DARK = "#333333";
 const CHECKER_LIGHT = "rgba(0, 0, 0, 0)";
 
@@ -75,8 +75,8 @@ export const PreviewNode = memo(({ id }: Props) => {
         return Object.values(connectedOutputTextures).find((outputTexture) => Boolean(outputTexture)) ?? null;
     }, [connectedOutputTextures]);
     const error = nodeData.error ?? null;
-    const gridSize = PREVIEW_GRID_OPTIONS.includes(nodeData.gridSize as (typeof PREVIEW_GRID_OPTIONS)[number])
-        ? nodeData.gridSize as (typeof PREVIEW_GRID_OPTIONS)[number]
+    const gridSize = Number.isInteger(nodeData.gridSize) && (nodeData.gridSize ?? 0) > 0
+        ? nodeData.gridSize as number
         : DEFAULT_PREVIEW_GRID_SIZE;
     const gridCells = gridSize * gridSize;
     const defaultPreviewCells = React.useMemo(() => {

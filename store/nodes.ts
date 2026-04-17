@@ -56,9 +56,37 @@ export type AppNodeType = keyof typeof NODE_TYPE_LABELS
 
 export const DEFAULT_PREVIEW_GRID_SIZE = 8
 
+const DEFAULT_CONNECTED_TEXTURE_PREVIEW_21_ROWS = [
+  "000000000000000000010",
+  "010011111110011110011",
+  "000000000000010010010",
+  "000011010110111000000",
+  "111111111111111010011",
+  "010010011110010010011",
+  "000000010010010010110",
+  "111110011110111110111",
+  "111110000000000010010",
+  "010010011010011111110",
+  "111111111010011111110",
+  "110111011010011111110",
+  "010000011000111111011",
+  "011111011111111111111",
+  "011110010011110011110",
+  "110010011111110011110",
+  "111010011111110111110",
+  "011000000000000000010",
+  "110010110011010000000",
+  "111110111111111000000",
+  "000110111111010000000",
+] as const
+
 function getPreviewCenterIndex(size: number) {
   const center = Math.floor((size - 1) / 2)
   return center * size + center
+}
+
+function createPreviewCellsFromRows(rows: readonly string[]) {
+  return rows.flatMap((row) => Array.from(row, (cell) => cell === "1"))
 }
 
 function createNodeId(type: AppNodeType) {
@@ -73,6 +101,10 @@ function createNodeId(type: AppNodeType) {
 }
 
 export function createDefaultPreviewCells(size = DEFAULT_PREVIEW_GRID_SIZE) {
+  if (size === 21) {
+    return createPreviewCellsFromRows(DEFAULT_CONNECTED_TEXTURE_PREVIEW_21_ROWS)
+  }
+
   const cells = new Array(size * size).fill(false)
   cells[getPreviewCenterIndex(size)] = true
   return cells
