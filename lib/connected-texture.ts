@@ -697,6 +697,23 @@ export function getConnectedTextureTemplateIndex(cells: boolean[], gridSize: num
   return templateIndex ?? null;
 }
 
+export function getConnectedTextureUsageCounts(cells: boolean[], gridSize: number) {
+  const counts = new Array(CONNECTED_TEXTURE_TEMPLATE_COUNT).fill(0)
+  const gridCells = Math.min(cells.length, gridSize * gridSize)
+
+  for (let cellIndex = 0; cellIndex < gridCells; cellIndex += 1) {
+    const templateIndex = getConnectedTextureTemplateIndex(cells, gridSize, cellIndex)
+
+    if (templateIndex === null) {
+      continue
+    }
+
+    counts[templateIndex] += 1
+  }
+
+  return counts
+}
+
 function createConnectedTextureOutput(
   baseTexture: SerializedTextureData,
   pixels: Uint8ClampedArray,

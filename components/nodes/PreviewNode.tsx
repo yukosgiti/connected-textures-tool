@@ -6,19 +6,24 @@ import {
     BaseNodeHeader,
     BaseNodeHeaderTitle
 } from "@/components/base-node";
+import { EmptyTexture, TexturePreview } from "@/components/EmptyTexture";
 import { Button } from "@/components/ui/button";
 import { resolveNodeOutputData, useNodeData } from "@/hooks/store";
+import { withBasePath } from "@/lib/base-path";
 import {
     CONNECTED_TEXTURE_INPUT_HANDLE_ID,
+    CONNECTED_TEXTURE_OUTPUTS,
+    getConnectedTextureUsageCounts,
     getConnectedTextureTemplateIndex,
 } from "@/lib/connected-texture";
 import { decodeTexturePixels, type SerializedTextureData } from "@/lib/texture";
-import { FRAMES } from "@/lib/utils";
+import { cn, FRAMES } from "@/lib/utils";
 import useStore from "@/store/graph";
 import { createDefaultPreviewCells, DEFAULT_PREVIEW_GRID_SIZE } from "@/store/nodes";
 import { ViewIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Handle, Position } from "@xyflow/react";
+import Image from "next/image";
 import React from "react";
 import { ButtonGroup } from "../ui/button-group";
 
@@ -39,6 +44,7 @@ type PreviewNodeData = {
     texture?: SerializedTextureData | null;
     gridSize?: number;
     cells?: boolean[];
+    debug?: boolean;
     error?: string | null;
 }
 
@@ -74,6 +80,7 @@ export const PreviewNode = memo(({ id }: Props) => {
     const firstConnectedTexture = React.useMemo(() => {
         return Object.values(connectedOutputTextures).find((outputTexture) => Boolean(outputTexture)) ?? null;
     }, [connectedOutputTextures]);
+    const debug = nodeData.debug ?? false;
     const error = nodeData.error ?? null;
     const gridSize = Number.isInteger(nodeData.gridSize) && (nodeData.gridSize ?? 0) > 0
         ? nodeData.gridSize as number
@@ -91,6 +98,42 @@ export const PreviewNode = memo(({ id }: Props) => {
 
         return nextCells;
     }, [defaultPreviewCells, gridCells, nodeData.cells]);
+    const connectedTextureUsageCounts = React.useMemo(() => {
+        if (!inputConnectedTexture) {
+            return null;
+        }
+
+        return getConnectedTextureUsageCounts(cells, gridSize);
+    }, [cells, gridSize, inputConnectedTexture]);
+    const connectedTextureUsageTotal = React.useMemo(() => {
+        return connectedTextureUsageCounts?.reduce((total, count) => total + count, 0) ?? 0;
+    }, [connectedTextureUsageCounts]);
+    const connectedTextureUsageMax = React.useMemo(() => {
+        return connectedTextureUsageCounts ? Math.max(...connectedTextureUsageCounts, 0) : 0;
+    }, [connectedTextureUsageCounts]);
+    const connectedTextureUsageEntries = React.useMemo(() => {
+        if (!connectedTextureUsageCounts) {
+            return [];
+        }
+
+        return CONNECTED_TEXTURE_OUTPUTS.map((output) => {
+            const count = connectedTextureUsageCounts[output.index] ?? 0;
+            const ratio = connectedTextureUsageMax > 0 ? count / connectedTextureUsageMax : 0;
+
+            return {
+                handleId: output.handleId,
+                index: output.index,
+                count,
+                ratio,
+            };
+        });
+    }, [connectedTextureUsageCounts, connectedTextureUsageMax]);
+    const connectedTextureUnusedCount = React.useMemo(() => {
+        return connectedTextureUsageEntries.filter((entry) => entry.count === 0).length;
+    }, [connectedTextureUsageEntries]);
+    const connectedTextureUsedCount = React.useMemo(() => {
+        return connectedTextureUsageEntries.length - connectedTextureUnusedCount;
+    }, [connectedTextureUsageEntries.length, connectedTextureUnusedCount]);
     const activePreviewTexture = inputConnectedTexture?.texture ?? inputTexture ?? texture;
     const decodedPixels = React.useMemo(() => {
         return activePreviewTexture ? decodeTexturePixels(activePreviewTexture) : null;
@@ -308,6 +351,10 @@ export const PreviewNode = memo(({ id }: Props) => {
         });
     }, [id, setNode]);
 
+    const clearCells = React.useCallback(() => {
+        setNode(id, { cells: new Array(gridCells).fill(false) });
+    }, [gridCells, id, setNode]);
+
     return (
         <BaseNode className="w-104">
             <BaseNodeHeader>
@@ -315,19 +362,31 @@ export const PreviewNode = memo(({ id }: Props) => {
                     <HugeiconsIcon icon={ViewIcon} />
                     Preview
                 </BaseNodeHeaderTitle>
-                <ButtonGroup>
-                    {PREVIEW_GRID_OPTIONS.map((option, index) => (
+                <div className="flex items-center gap-1">
+                    <ButtonGroup>
+                        {PREVIEW_GRID_OPTIONS.map((option) => (
+                            <Button
+                                key={option}
+                                size="xs"
+                                variant={gridSize === option ? "default" : "outline"}
+                                onClick={() => setGridSize(option)}
+                                className="nodrag px-1.5 text-[10px]"
+                            >
+                                {option}x{option}
+                            </Button>
+                        ))}
+                    </ButtonGroup>
+                    <ButtonGroup>
                         <Button
-                            key={option}
                             size="xs"
-                            variant={gridSize === option ? "default" : "outline"}
-                            onClick={() => setGridSize(option)}
+                            variant={debug ? "default" : "outline"}
+                            onClick={() => setNode(id, { debug: !debug })}
                             className="nodrag px-1.5 text-[10px]"
                         >
-                            {option}x{option}
+                            Debug
                         </Button>
-                    ))}
-                </ButtonGroup>
+                    </ButtonGroup>
+                </div>
             </BaseNodeHeader>
             <BaseNodeContent>
                 <div className="nodrag overflow-hidden rounded-md border border-border bg-secondary/40 p-1">
@@ -339,6 +398,116 @@ export const PreviewNode = memo(({ id }: Props) => {
                         style={{ imageRendering: "pixelated" }}
                     />
                 </div>
+
+                {debug && inputConnectedTexture && (
+                    <div className="nodrag flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-muted-foreground">Connected Texture Usage</span>
+                            <div className="flex items-center gap-1">
+                                <div className="rounded-full border border-border bg-secondary/20 px-2 py-1 text-[10px] text-muted-foreground">
+                                    <span className="tabular-nums text-foreground">{connectedTextureUsageTotal}</span> tiles
+                                </div>
+                                <Button
+                                    size="xs"
+                                    variant="destructive"
+                                    onClick={clearCells}
+                                    className="nodrag"
+                                    disabled={connectedTextureUsageTotal === 0}
+                                >
+                                    Clean
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            <div className="rounded-md border border-border bg-secondary/20 px-2 py-1.5">
+                                <div className="text-[10px] text-muted-foreground">Used</div>
+                                <div className="text-sm font-semibold tabular-nums text-foreground">{connectedTextureUsedCount}</div>
+                            </div>
+                            <div className="rounded-md border border-destructive/35 bg-destructive/10 px-2 py-1.5">
+                                <div className="text-[10px] text-destructive/80">Unused</div>
+                                <div className="text-sm font-semibold tabular-nums text-destructive">{connectedTextureUnusedCount}</div>
+                            </div>
+                            <div className="rounded-md border border-border bg-secondary/20 px-2 py-1.5">
+                                <div className="text-[10px] text-muted-foreground">Peak</div>
+                                <div className="text-sm font-semibold tabular-nums text-foreground">{connectedTextureUsageMax}</div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-6 gap-1.5">
+                            {connectedTextureUsageEntries.map((entry) => {
+                                const progressWidth = entry.count === 0
+                                    ? 100
+                                    : Math.max(12, Math.round(entry.ratio * 100));
+
+                                return (
+                                    <div
+                                        key={entry.index}
+                                        className={cn(
+                                            "flex min-h-20 flex-col gap-1 rounded-md border px-1.5 py-1.5 transition-colors",
+                                            entry.count === 0
+                                                ? "border-destructive/40 bg-destructive/10"
+                                                : entry.ratio >= 0.75
+                                                    ? "border-primary/35 bg-primary/12"
+                                                    : entry.ratio >= 0.35
+                                                        ? "border-border bg-secondary/35"
+                                                        : "border-border/70 bg-secondary/15",
+                                        )}
+                                    >
+                                        <div className="flex items-start justify-between gap-1">
+                                            <span className={cn(
+                                                "text-[10px] tabular-nums",
+                                                entry.count === 0 ? "text-destructive" : "text-muted-foreground",
+                                            )}>
+                                                #{entry.index}
+                                            </span>
+                                            <span className={cn(
+                                                "text-sm font-semibold tabular-nums leading-none",
+                                                entry.count === 0 ? "text-destructive" : "text-foreground",
+                                            )}>
+                                                {entry.count}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Image
+                                                src={withBasePath(`/sample/${entry.index}.png`)}
+                                                alt={`Sample ${entry.index}`}
+                                                width={20}
+                                                height={20}
+                                                className="size-5 rounded-xs object-cover"
+                                                style={{ imageRendering: "pixelated" }}
+                                            />
+                                            {connectedOutputTextures[entry.handleId] ? (
+                                                <TexturePreview
+                                                    texture={connectedOutputTextures[entry.handleId] as SerializedTextureData}
+                                                    frameIndex={frameIndex}
+                                                    className="size-5 rounded-xs"
+                                                />
+                                            ) : (
+                                                <EmptyTexture className="size-5 rounded-xs" />
+                                            )}
+                                        </div>
+                                        <div className={cn(
+                                            "mt-auto h-1.5 overflow-hidden rounded-full",
+                                            entry.count === 0 ? "bg-destructive/15" : "bg-background/70",
+                                        )}>
+                                            <div
+                                                className={cn(
+                                                    "h-full rounded-full",
+                                                    entry.count === 0 ? "bg-destructive/75" : "bg-primary",
+                                                )}
+                                                style={{ width: `${progressWidth}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Unused connected textures are highlighted in red.</p>
+                    </div>
+                )}
+
+                {debug && !inputConnectedTexture && (
+                    <p className="text-[10px] text-muted-foreground">Connect a connected texture to inspect usage counts.</p>
+                )}
 
 
                 {error && <p className="text-destructive text-xs">{error}</p>}
