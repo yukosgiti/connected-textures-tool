@@ -7,6 +7,14 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? inferredBasePath
 const nextConfig = {
     output: "export",
     transpilePackages: ["three"],
+    turbopack: {
+        rules: {
+            "*.glsl": {
+                loaders: ["raw-loader"],
+                as: "*.js",
+            },
+        },
+    },
     images: {
         unoptimized: true,
     },
@@ -15,6 +23,7 @@ const nextConfig = {
     env: {
         NEXT_PUBLIC_BASE_PATH: basePath,
     },
+    
 }
 
 export default nextConfig
