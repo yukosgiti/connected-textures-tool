@@ -13,8 +13,8 @@ import { withBasePath } from "@/lib/base-path";
 import {
     CONNECTED_TEXTURE_INPUT_HANDLE_ID,
     CONNECTED_TEXTURE_OUTPUTS,
-    getConnectedTextureUsageCounts,
     getConnectedTextureTemplateIndex,
+    getConnectedTextureUsageCounts,
 } from "@/lib/connected-texture";
 import { decodeTexturePixels, type SerializedTextureData } from "@/lib/texture";
 import { cn, FRAMES } from "@/lib/utils";
@@ -48,7 +48,7 @@ type PreviewNodeData = {
     error?: string | null;
 }
 
-const PREVIEW_GRID_OPTIONS = [3, 4, 8, 21] as const;
+const PREVIEW_GRID_OPTIONS = [3, 4, 8, 10, 21] as const;
 const CHECKER_DARK = "#333333";
 const CHECKER_LIGHT = "rgba(0, 0, 0, 0)";
 
