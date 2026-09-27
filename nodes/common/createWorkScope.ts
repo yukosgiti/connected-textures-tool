@@ -26,7 +26,6 @@ export function createWorkScope<TInput, TOutput>(scope: WorkerScope<TInput, TOut
         }
 
         try {
-            const canvas = new OffscreenCanvas(16, 16*60);
 
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
