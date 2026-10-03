@@ -39,6 +39,7 @@ type TextureNodeData = {
 const PRESET_TEXTURE_ASSETS = [
     { name: "cobblestone.png", src: "/assets/cobblestone.png" },
     { name: "texture.png", src: "/assets/texture.png" },
+    { name: "mask_inv_circle.png", src: "/assets/mask_inv_circle.png" },
     { name: "side_top.png", src: "/assets/side_top.png" },
     { name: "mask-t.png", src: "/assets/mask-t.png" },
     { name: "mask-b.png", src: "/assets/mask-b.png" },

@@ -34,6 +34,7 @@ type MaskTextureNodeData = {
 }
 
 const MASK_PRESET_ASSETS = [
+    { name: "mask_inv_circle.png", src: "/assets/mask_inv_circle.png" },
     { name: "mask-t.png", src: "/assets/mask-t.png" },
     { name: "mask-b.png", src: "/assets/mask-b.png" },
     { name: "mask-border.png", src: "/assets/mask-border.png" },
